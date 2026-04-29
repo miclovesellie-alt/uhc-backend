@@ -85,4 +85,15 @@ router.patch("/messages/:id", async (req, res) => {
   }
 });
 
+// @desc    Delete message
+// @route   DELETE /api/contact/messages/:id
+router.delete("/messages/:id", async (req, res) => {
+  try {
+    await Message.findByIdAndDelete(req.params.id);
+    res.json({ message: "Message deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Delete failed" });
+  }
+});
+
 module.exports = { router, setIO };
