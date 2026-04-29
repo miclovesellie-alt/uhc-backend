@@ -132,6 +132,23 @@ app.post("/api/courses", async (req, res) => {
   }
 });
 
+app.delete("/api/courses/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Optional: Check if there are questions using this course
+    // For now, just delete the course document
+    const deleted = await Course.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ message: "Course not found" });
+    
+    res.json({ message: "Course deleted successfully" });
+    emitAdminStats();
+  } catch (err) {
+    console.error("Delete course error:", err);
+    res.status(500).json({ message: "Failed to delete course" });
+  }
+});
+
 // =========================
 // ADMIN STATS ROUTE
 // =========================
