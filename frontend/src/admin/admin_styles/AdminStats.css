@@ -1,0 +1,23 @@
+.admin-stats{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:20px;
+}
+
+.admin-stat-card{
+    background:white;
+    padding:25px;
+    border-radius:10px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.05);
+}
+
+.admin-stat-card h3{
+    font-size:16px;
+    color:#64748b;
+}
+
+.admin-stat-card p{
+    font-size:28px;
+    font-weight:bold;
+    margin-top:10px;
+}

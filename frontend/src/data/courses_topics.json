@@ -1,0 +1,53 @@
+{
+  "Medicine and Medical Nursing": {},
+  "Anatomy and Physiology 1": {
+    "Circulatory System": [],
+    "Respiratory System": [],
+    "Digestive System": []
+  },
+  "Anatomy and Physiology 2": {
+    "Reproductive System": [],
+    "Nervous System": [],
+    "Endocrine System": []
+  },
+  "Pathology": {
+    "Pathology": [],
+    "Disease": []
+  },
+  "Behavioral Science": {
+    "Communication Skills": [],
+    "Human Behavior": []
+  },
+  "Pharmacology": {
+    "Drug Classifications": [],
+    "Dosage Calculations": []
+  },
+  "Basic Nursing": {
+    "Patient Care": [],
+    "Hygiene Practices": []
+  },
+  "Surgery and Surgical Nursing": {
+    "Preoperative Care": [],
+    "Postoperative Care": []
+  },
+  "First Aid": {
+    "CPR": [],
+    "Bleeding Control": []
+  },
+  "Therapeutic Communication": {
+    "Active Listening": [],
+    "Patient Interview": []
+  },
+  "Professional Adjustment": {
+    "Time Management": [],
+    "Workplace Ethics": []
+  },
+  "Principles and Practices of PHN": {
+    "Community Health": [],
+    "Maternal Care": []
+  },
+  "Obstetric Nursing": {
+    "Labor and Delivery": [],
+    "Postnatal Care": []
+  }
+}

@@ -1,0 +1,152 @@
+/* =========================
+   DASHBOARD WRAPPER (UPDATED)
+========================= */
+.dashboard-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+
+  /* REPLACED BACKGROUND IMAGE WITH CLEAN STYLE */
+  background: linear-gradient(135deg, #0f172a, #1e293b, #0ea5e9);
+  background-size: cover;
+
+  font-family: "Segoe UI", Arial, sans-serif;
+  color: #fff;
+  position: relative;
+}
+
+/* =========================
+   TOP NAVIGATION BAR (NEW)
+========================= */
+.dashboard-topbar {
+  width: 100%;
+  height: 70px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+
+  padding: 0 20px;
+
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+}
+
+/* NAV ICON BUTTONS (READY FOR NEXT STEP) */
+.nav-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 45px;
+  height: 45px;
+
+  border-radius: 12px;
+  border: none;
+
+  cursor: pointer;
+
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+
+  transition: 0.3s ease;
+}
+
+.nav-icon-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(14, 165, 233, 0.4);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.4);
+}
+
+/* =========================
+   DASHBOARD CONTENT
+========================= */
+.dashboard-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  padding: 10px;
+}
+
+/* Hide scrollbars but keep functional */
+.dashboard-content::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+/* =========================
+   PAGE SLIDE ANIMATION
+========================= */
+.page {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 100%;
+
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  z-index: 5;
+  opacity: 1;
+}
+
+.page-active {
+  transform: translateX(0%);
+  z-index: 10;
+  opacity: 1;
+}
+
+.page-enter-left {
+  transform: translateX(-100%);
+  z-index: 15;
+  opacity: 0;
+}
+
+.page-enter-right {
+  transform: translateX(100%);
+  z-index: 15;
+  opacity: 0;
+}
+
+.page-exit-left {
+  transform: translateX(-100%);
+  z-index: 5;
+  opacity: 0;
+}
+
+.page-exit-right {
+  transform: translateX(100%);
+  z-index: 5;
+  opacity: 0;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 768px) {
+  .dashboard-topbar {
+    gap: 1rem;
+    justify-content: space-around;
+  }
+
+  .nav-icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-topbar {
+    height: 60px;
+  }
+
+  .nav-icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+}

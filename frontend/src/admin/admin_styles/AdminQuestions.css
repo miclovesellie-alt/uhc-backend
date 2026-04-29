@@ -1,0 +1,697 @@
+/* ===============================
+   BASE (UNCHANGED STRUCTURE)
+=============================== */
+
+.admin-questions-container {
+  padding: 20px;
+  background: linear-gradient(135deg, #e0f2fe, #f8fafc);
+  min-height: 100vh;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* ===============================
+   HEADER
+=============================== */
+
+.admin-questions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+/* CENTER TITLE */
+
+.futuristic-title {
+  flex: 1;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #3b82f6, #6366f1, #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  position: relative;
+}
+
+/* subtle glow */
+
+.futuristic-title::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -6px;
+  width: 60%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+  animation: glowLine 3s infinite;
+}
+
+@keyframes glowLine {
+  0% { opacity: 0.2; width: 40%; }
+  50% { opacity: 1; width: 70%; }
+  100% { opacity: 0.2; width: 40%; }
+}
+
+/* ADD BUTTON */
+
+.add-question-btn {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.add-question-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59,130,246,0.4);
+}
+
+/* ===============================
+   SEARCH + FILTER
+=============================== */
+
+.admin-search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* SEARCH INPUT */
+
+.admin-search-bar input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  outline: none;
+  transition: 0.3s;
+}
+
+.admin-search-bar input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+
+/* FILTER WRAPPER */
+
+.futuristic-filter {
+  position: relative;
+}
+
+/* SELECT */
+
+.futuristic-filter select {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+/* HOVER EFFECT */
+
+.futuristic-filter select:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59,130,246,0.3);
+}
+
+/* ===============================
+   QUESTIONS LIST
+=============================== */
+
+.questions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* CARD */
+
+.question-card {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+
+.question-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(59,130,246,0.2);
+}
+
+/* HEADER */
+
+.question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* MAIN */
+
+.question-main {
+  cursor: pointer;
+}
+
+.question-main p {
+  margin-top: 4px;
+  color: #475569;
+}
+
+/* COURSE */
+
+.course {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6366f1;
+}
+
+/* ===============================
+   EXPANDED
+=============================== */
+
+.question-expanded {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  animation: fadeSlide 0.25s ease;
+}
+
+@keyframes fadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===============================
+   THREE DOT MENU
+=============================== */
+
+.menu-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  transition: 0.3s;
+}
+
+.menu-btn:hover {
+  transform: rotate(90deg) scale(1.2);
+}
+
+/* DROPDOWN */
+
+.actions-dropdown {
+  position: absolute;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  padding: 8px;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+.actions-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* BUTTON COLORS */
+
+.edit-btn {
+  color: #3b82f6;
+}
+
+.delete-btn {
+  color: #ef4444;
+}
+
+/* ===============================
+   MODALS
+=============================== */
+
+.delete-modal,
+.edit-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* BOX */
+
+.delete-box,
+.edit-box {
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 24px;
+  width: 400px;
+  max-width: 90%;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  animation: pop 0.25s ease;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ===============================
+   EDIT FORM
+=============================== */
+
+.edit-box input,
+.edit-box textarea {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+/* OPTIONS */
+
+.option {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.option:hover {
+  background: #f1f5f9;
+}
+
+.option.selected {
+  background: rgba(59,130,246,0.2);
+}
+
+/* ===============================
+   BUTTONS
+=============================== */
+
+.edit-actions,
+.delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.edit-actions button,
+.delete-actions button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+/* CANCEL */
+
+.edit-actions button:first-child,
+.delete-actions button:first-child {
+  background: #e2e8f0;
+}
+
+/* CONFIRM */
+
+.edit-actions button:last-child,
+.delete-actions button:last-child {
+  background: linear-gradient(135deg,#3b82f6,#6366f1);
+  color: white;
+}
+
+/* ===============================
+   SCROLLBAR (SUBTLE)
+=============================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100,116,139,0.4);
+  border-radius: 10px;
+}
+
+/* ===============================
+   ADD QUESTION MODAL UPGRADE
+   (DOES NOT TOUCH EXISTING CSS)
+=============================== */
+
+/* COURSE PICKER INPUT */
+
+.delete-box input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  outline: none;
+  transition: 0.3s;
+}
+
+.delete-box input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+
+/* COURSE LIST BUTTONS */
+
+.delete-box button {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(248,250,252,0.9);
+  cursor: pointer;
+  text-align: left;
+  transition: 0.25s;
+  font-size: 14px;
+}
+
+.delete-box button:hover {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: white;
+  transform: translateX(4px);
+}
+
+/* ===============================
+   ADD QUESTION FORM ENHANCEMENT
+=============================== */
+
+/* TITLE */
+
+.edit-box h2 {
+  text-align: center;
+  margin-bottom: 10px;
+  background: linear-gradient(90deg, #3b82f6, #6366f1, #0ea5e9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* COURSE FIELD LOCK STYLE */
+
+.edit-box input[readonly] {
+  background: #f1f5f9;
+  cursor: not-allowed;
+  font-weight: 600;
+  color: #6366f1;
+}
+
+/* TEXTAREA IMPROVEMENT */
+
+.edit-box textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* ===============================
+   OPTIONS (ENHANCED UI)
+=============================== */
+
+.option {
+  align-items: center;
+  border: 1px solid transparent;
+}
+
+/* OPTION LETTER BADGE */
+
+.option span {
+  font-weight: bold;
+  background: #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  min-width: 30px;
+  text-align: center;
+}
+
+/* INPUT INSIDE OPTION */
+
+.option input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+/* SELECTED OPTION (CORRECT ANSWER) */
+
+.option.selected {
+  border: 1px solid #3b82f6;
+  background: linear-gradient(
+    135deg,
+    rgba(59,130,246,0.15),
+    rgba(99,102,241,0.15)
+  );
+  box-shadow: 0 0 12px rgba(59,130,246,0.4);
+  transform: scale(1.01);
+}
+
+/* SUBTLE PULSE FOR SELECTED */
+
+.option.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  animation: pulseGlow 1.5s infinite;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 rgba(59,130,246,0.3); }
+  50% { box-shadow: 0 0 15px rgba(59,130,246,0.6); }
+  100% { box-shadow: 0 0 0 rgba(59,130,246,0.3); }
+}
+
+/* ===============================
+   SAVE BUTTON EMPHASIS
+=============================== */
+
+.edit-actions button:last-child {
+  position: relative;
+  overflow: hidden;
+}
+
+/* SHIMMER EFFECT */
+
+.edit-actions button:last-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255,255,255,0.4),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.edit-actions button:last-child:hover::before {
+  left: 100%;
+}
+
+/* ===============================
+   MODAL ENTRY ANIMATION ENHANCE
+=============================== */
+
+.delete-modal,
+.edit-modal {
+  animation: fadeBackdrop 0.25s ease;
+}
+
+@keyframes fadeBackdrop {
+  from {
+    background: rgba(0,0,0,0);
+  }
+  to {
+    background: rgba(0,0,0,0.35);
+  }
+}
+
+/* ===============================
+   SCROLL INSIDE MODAL
+=============================== */
+
+.edit-box {
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* ===============================
+   MODAL CLOSE BUTTON FIX (FINAL)
+=============================== */
+
+/* Ensure modal container is positioning reference */
+.edit-box,
+.delete-box {
+  position: relative !important;
+}
+
+/* Prevent other button styles from affecting close button */
+.delete-box button:not(.modal-close-btn),
+.edit-box button:not(.modal-close-btn) {
+  /* keep your existing styles here (this just prevents override) */
+}
+
+/* Close button style (forced to override everything) */
+.modal-close-btn {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+
+  width: 30px !important;
+  height: 30px !important;
+
+  background: #ef4444 !important;
+  color: #ffffff !important;
+
+  border: none !important;
+  border-radius: 50% !important;
+
+  font-size: 16px;
+  font-weight: bold;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  z-index: 999 !important;
+
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+
+/* Hover effect */
+.modal-close-btn:hover {
+  background: #dc2626 !important;
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+}
+
+/* Click effect */
+.modal-close-btn:active {
+  transform: scale(0.95);
+}
+
+}
+
+/* ======================================================
+ADMIN QUESTIONS DARK MODE OVERRIDES
+====================================================== */
+.admin-wrapper.admin-dark .admin-questions-container {
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: #f1f5f9;
+}
+
+.admin-wrapper.admin-dark .admin-search-bar input,
+.admin-wrapper.admin-dark .futuristic-filter select,
+.admin-wrapper.admin-dark .delete-box input {
+    background: rgba(15, 23, 42, 0.8);
+    color: #f1f5f9;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.admin-wrapper.admin-dark .question-card {
+    background: rgba(30, 41, 59, 0.8);
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-wrapper.admin-dark .question-main p {
+    color: #94a3b8;
+}
+
+.admin-wrapper.admin-dark .question-expanded {
+    border-top-color: #334155;
+}
+
+.admin-wrapper.admin-dark .actions-dropdown,
+.admin-wrapper.admin-dark .delete-box,
+.admin-wrapper.admin-dark .edit-box {
+    background: rgba(30, 41, 59, 0.95);
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.admin-wrapper.admin-dark .actions-dropdown button {
+    color: #cbd5e1;
+}
+
+.admin-wrapper.admin-dark .actions-dropdown button:hover {
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.admin-wrapper.admin-dark .edit-box input,
+.admin-wrapper.admin-dark .edit-box textarea {
+    background: #0f172a;
+    color: #f1f5f9;
+    border-color: #334155;
+}
+
+.admin-wrapper.admin-dark .option {
+    border-color: transparent;
+}
+
+.admin-wrapper.admin-dark .option:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.admin-wrapper.admin-dark .option span {
+    background: #334155;
+    color: #f1f5f9;
+}
+
+.admin-wrapper.admin-dark .delete-box button:not(.modal-close-btn) {
+    background: rgba(15, 23, 42, 0.6);
+    color: #cbd5e1;
+}
+
+.admin-wrapper.admin-dark .delete-box button:not(.modal-close-btn):hover {
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: white;
+}
+
+.admin-wrapper.admin-dark .edit-actions button:first-child,
+.admin-wrapper.admin-dark .delete-actions button:first-child {
+    background: #334155;
+    color: #f1f5f9;
+}

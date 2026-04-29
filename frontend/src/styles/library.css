@@ -1,0 +1,331 @@
+.library-wrapper {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.library-header {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.library-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-heading);
+  margin: 0;
+}
+
+.library-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.library-search-input {
+  width: 100%;
+  padding: 12px 16px 12px 42px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: white;
+  color: var(--text-heading);
+  outline: none;
+  transition: all 0.2s;
+}
+
+.library-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(66, 85, 255, 0.1);
+}
+
+.course-filter-group {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.course-filter-group::-webkit-scrollbar { display: none; }
+
+.course-pill {
+  padding: 8px 20px;
+  border-radius: 50px;
+  background: white;
+  border: 1.5px solid var(--border);
+  color: var(--text-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.course-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.course-pill.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* ===== CLASSIC COURSE CARDS ===== */
+.course-card-classic {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.course-card-classic:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.course-card-icon {
+  width: 60px;
+  height: 60px;
+  background: var(--accent-pale);
+  color: var(--accent);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.course-card-info {
+  flex: 1;
+}
+
+.course-card-info h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-heading);
+}
+
+.book-count-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: var(--bg-input);
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-body);
+}
+
+.course-card-classic:hover .book-count-badge {
+  background: var(--accent);
+  color: white;
+}
+
+.course-arrow {
+  color: var(--border);
+  transition: transform 0.2s, color 0.2s;
+}
+
+.course-card-classic:hover .course-arrow {
+  color: var(--accent);
+  transform: translateX(4px);
+}
+
+.empty-library {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+}
+
+
+.library-books-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.book-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+
+.book-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.book-cover {
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(135deg, var(--accent-pale), #e0e7ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.book-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.book-cover-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+}
+
+.book-info {
+  padding: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.book-course-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.book-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.book-author {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.book-actions {
+  margin-top: auto;
+}
+
+.book-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--bg-hover);
+  color: var(--text-heading);
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.book-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .library-wrapper { padding: 20px; }
+  .library-header { gap: 16px; }
+  .library-controls { flex-direction: column; align-items: flex-start; }
+}
+
+/* ===== DARK MODE ENHANCEMENTS FOR LIBRARY ===== */
+.dark-theme .library-title,
+.dark-theme .book-title,
+.dark-theme .course-card-info h3,
+.dark-theme .library-search-input,
+.dark-theme .book-btn {
+  color: #f1f5f9;
+}
+
+.dark-theme .library-search-input,
+.dark-theme .course-pill,
+.dark-theme .course-card-classic,
+.dark-theme .book-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark-theme .library-search-input:focus {
+  background: #0f172a;
+}
+
+.dark-theme .course-pill:hover,
+.dark-theme .course-card-classic:hover,
+.dark-theme .book-card:hover {
+  border-color: var(--accent);
+}
+
+.dark-theme .course-pill.active {
+  background: var(--accent);
+  color: white;
+}
+
+.dark-theme .book-count-badge,
+.dark-theme .book-btn {
+  background: #0f172a;
+  color: #94a3b8;
+}
+
+.dark-theme .book-btn:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.dark-theme .book-author {
+  color: #94a3b8;
+}
+
+.dark-theme .book-cover {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+}
+
+.dark-theme .course-card-icon {
+  background: rgba(66, 85, 255, 0.15);
+}

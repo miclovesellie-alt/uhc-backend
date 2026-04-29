@@ -1,0 +1,497 @@
+[
+  {
+    "course": "Pharmacology",
+    "question": "A nurse is caring for a 55-year-old male patient undergoing chemotherapy who ask about using acupuncture to help with nausea. What is the most appropriate nursing action?",
+    "options": [
+      "Strongly discourage the use due to lack of evidence",
+      "Inform patient that acupuncture is an alternate medicine and not recommended",
+      "Acknowledge it as a complementary approach and assess for any contraindications",
+      "Refer the patient to a psychologist instead of discussing acupuncture"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "A diabetic patient decides to stop insulin therapy and use herbal remedies alone. What is the nurse\u2019s primary responsibility?",
+    "options": [
+      "Support the patient\u2019s choice to try natural methods",
+      "Educate the patient on the risk of replacing insulin with unproven remedies",
+      "Suggest combining the herbs with spiritual healing",
+      "Recommend switching to homeopathy if herbs are ineffective"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "A hypertensive patient uses ginger supplements while taking antihypertensives. What is the most appropriate nursing action?",
+    "options": [
+      "Stop the patient from using any herbal supplement",
+      "Ignore since ginger is natural and harmless",
+      "Assess for potential herb-drug interactions and inform the care team",
+      "Encourage the patient to double the antihypertensive dose"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Which of the following demonstrates a nurse\u2019s application of culturally competent care regarding CAM?",
+    "options": [
+      "Recommending only western medical treatments",
+      "Advising patient to stop all spiritual healing",
+      "Asking patients about cultural practices and integrating safe ones",
+      "Reporting patients to the physician"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "A cancer patient prefers using spiritual healing and refuses chemotherapy. What should the nurse prioritize?",
+    "options": [
+      "Report patient to hospital management",
+      "Respect the decision and document it",
+      "Force chemotherapy since it is evidence based",
+      "Schedule a spiritual healing session for them"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "A nurse is assessing a patient using herbal medicine. What should the nurse consider most?",
+    "options": [
+      "Herbs are always safe and effective",
+      "Herb-drug interaction may affect the treatment plan",
+      "Herbs cannot cause allergic reactions",
+      "D. The patient should be transferred to a traditional healer"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Which mind body mechanism is primarily responsible for lowering blood pressure during medication?",
+    "options": [
+      "Activation of sympathetic nervous system",
+      "Release of dopamine",
+      "Modulation of parasympathetic nervous system",
+      "Increase in adrenalin production"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "In a palliative care setting, which of the following CAM interventions would be most appropriate to promote patient comfort and peace?",
+    "options": [
+      "Radiation therapy",
+      "Acupressure and medication education",
+      "Deep breathing exercise and spiritual support",
+      "IV fluid therapy and wound irrigation"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Which of the following findings would indicate a positive outcome from a ming body practice in a patient with anxiety?",
+    "options": [
+      "Increased cortisol levels",
+      "Elevated respiratory rate",
+      "Improved emotional regulation",
+      "Heightened sympathetic activity"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "A nurse is educating a patient about mind body practices. Which explanation best reflects how they promote health?",
+    "options": [
+      "They eliminate the need for conventional therapy",
+      "They work by cleansing the blood",
+      "They regulate emotions and reduce stress hormone",
+      "They enhance drug absorption"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "A nurse observes a patient with rheumatoid arthritis reports less pain after daily medication. Whit is the most evidence informed explanation?",
+    "options": [
+      "A medication acts as a placebo and is temporary",
+      "A medication inflammation but distracts from pain",
+      "Medication modules immune responses and lowers inflammation",
+      "Medication has no measurable physical effects"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Kwame, a retired teacher with PTSD, is advised to use a technique involving visualization of a peaceful forest led by a recorded voice, what therapy is this?",
+    "options": [
+      "oga",
+      "Guided imagery",
+      "Biofeedback",
+      "Transcendental medication"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Adjoa, who experiences frequent migraines, begins thermal biofeedback sessions. Which physiological indicator will show she is achieving relaxation?",
+    "options": [
+      "Decreased skin temperature",
+      "Increased heart rate",
+      "Increased skin temperature",
+      "Increased muscle tension"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Essi attends a corporate wellness session that includes slow movements, deep breathing and focused attention to balance energy. Which practice is she engaging in?",
+    "options": [
+      "Ashtanga yoga",
+      "Neurofeedback",
+      "Qigong",
+      "Mindfulness"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Kojo practices a technique where he sits quietly and repeats a specific word in his mind for 20 minutes. Which meditation type is this?",
+    "options": [
+      "Mindfulness meditation",
+      "Transcendental meditation",
+      "Chakra meditation",
+      "Guided imagery"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Ama, recovering from a road accident, uses a technique involving a machine that shows her muscle tension so she can learn to relax. What is she using?",
+    "options": [
+      "EMG Biofeedback",
+      "Zen Meditation",
+      "Spiritual Qigong",
+      "Hypnotherapy"
+    ],
+    "answer": 0
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Yaw attends a session where he enters a deep state of relaxation and is guided to visualize success and healing. Which method is being used?",
+    "options": [
+      " Guided Imagery",
+      "Hypnotherapy",
+      "HRV Biofeedback",
+      "Vinyasa Yoga"
+    ],
+    "answer": 0
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Akosua, who suffers from anxiety, is advised to try a yoga style involving long-held postures and deep relaxation. Which type of yoga suits her?",
+    "options": [
+      "Bikram Yoga",
+      "Kundalini Yoga",
+      "Yin Yoga",
+      "Ashtanga Yoga"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Before surgery, Matilda feels anxious. The nurse helps her through breathing exercises and calming meditation. What approach is being applied?",
+    "options": [
+      "Bikram Yoga",
+      "Biofeedback",
+      "Mind-Body Medicine",
+      "Martial Qigong"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Francis practices Chakra Meditation each morning. Which of the following is likely part of his routine?",
+    "options": [
+      "Ice bath therapy",
+      "Deep muscle contraction",
+      "Visualization of energy centers",
+      "Brain wave monitoring"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Which of the following practices would most likely include alternate nostril breathing, as used by Mary for stress reduction?",
+    "options": [
+      "Guided Imagery",
+      "Hypnotherapy",
+      "Yoga Pranayama",
+      "Biofeedback"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Kofi, a final-year SHS student, experiences test anxiety. The school counselor guides him through a calming visualization. Which method is used?",
+    "options": [
+      "Kundalini Yoga",
+      "Guided Imagery",
+      "Neurofeedback",
+      "Dynamic Qigong"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Yaa, diagnosed with irritable bowel syndrome, begins therapy involving electrodes to monitor her skin's electrical activity: What is this called?",
+    "options": [
+      "Restorative Yoga",
+      "GSR Biofeedback",
+      "Zen meditation",
+      "TM"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Kojo practices Kundalini Yoga. What combination is part of his practice?",
+    "options": [
+      "Weight lifting and squats",
+      "Chanting, breathwork, and movement",
+      "Only seated meditation",
+      "Static poses without breathing techniques"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Ama is using neurofeedback therapy for ADHD. What does the therapist monitor and help her control?",
+    "options": [
+      "Blood glucose levels",
+      "Muscle strength",
+      "Brain wave patterns",
+      "Energy chakras"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Kwabena suffers from arthritis and uses a calming technique involving visualization to reduce his discomfort. What is the goal of this practice?",
+    "options": [
+      "To increase inflammation",
+      "To replace medications entirely",
+      "To reduce pain perception and promote relaxation",
+      "To strengthen cartilage"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Ngozi, a 65-year-old with high blood pressure, regularly drinks hibiscus tea and takes garlic capsules. What is the nurse's main concern regarding her current antihypertensive therapy?",
+    "options": [
+      "Risk of constipation",
+      "Risk of severe hypotension",
+      "Increased appetite",
+      "Development of anemia"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Chinedu uses turmeric supplements for joint inflammation. What is the main mechanism of action?",
+    "options": [
+      "Hormonal regulation",
+      "Microbiome disruption",
+      "Anti-inflammatory effect",
+      "Muscle stimulation"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Aisha, recently diagnosed with diabetes, adopts a ketogenic diet. What is a key feature of this diet?",
+    "options": [
+      "High carbohydrates and fiber",
+      "Low protein and high sugar",
+      "High fat and low carbohydrate",
+      "Balanced portions of all food groups"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Emeka, a university lecturer, practices Traditional Chinese Medicine (TCM diet therapy).What is a key principle of this diet?",
+    "options": [
+      "Avoiding all warm foods",
+      "Classifying foods by energy and meridian effects",
+      "Eating raw foods only",
+      "Consuming only liquids before 10 a.m."
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Funke takes high doses of vitamin A as a supplement. What is the main risk involved?",
+    "options": [
+      "Anemia",
+      "Hypertension",
+      "Toxicity",
+      "Asthma"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Tunde, with irritable bowel syndrome (IBS), is advised a low-FODMAP diet. What does this diet target?",
+    "options": [
+      "Decreased sugar",
+      "Reduced fat intake",
+      "Fermentable carbohydrates",
+      "High protein intake"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Sade has shoulder stiffness post-stroke. The physiotherapist uses slow pressure on connective tissues. What technique is this?",
+    "options": [
+      "Trigger point therapy",
+      "Myofascial release",
+      "Effleurage",
+      "Rolfing"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Yusuf, recovering from a fall, receives deep kneading massage on his back muscles. Which massage technique is this?",
+    "options": [
+      "Effleurage",
+      "Petrissage",
+      "Tapping",
+      "Vibration"
+    ],
+    "answer": 1
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Zainab, 58, uses echinacea for recurrent colds. What is its proposed mechanism?",
+    "options": [
+      "A. Muscle relaxation",
+      "B. Liver detoxification",
+      "\u00a9 Immune system stimulation",
+      "Cholesterol control"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Ibrahim has chronic back pain. He undergoes spinal manipulation by a chiropractor. What is the core principle of this intervention?",
+    "options": [
+      "Enhancing blood sugar regulation",
+      "Releasing trapped energy",
+      "Realigning musculoskeletal structure to restore function",
+      "Eliminating toxins through sweating"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Chiamaka, who follows a vegan diet, should be monitored for which nutritional deficiency?",
+    "options": [
+      "Vitamin B12",
+      "Iron",
+      "Vitamin A",
+      "Magnesium"
+    ],
+    "answer": 0
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Adewale receives trigger point therapy for a painful knot in his shoulder. What is the nurse's expected outcome?",
+    "options": [
+      "Decreased sleep",
+      "Increased inflammation",
+      "Pain relief",
+      "Numbness"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Halima reports drinking detox juices for \"cleansing the liver.\" What is a valid nursing concern about detox diets?",
+    "options": [
+      "Too much protein intake",
+      "Excessive scientific backing",
+      "Potential nutritional deficiency or unsafe fasting",
+      "They are always recommended for heart patients"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Uche, post-stroke, receives joint manipulation as part of rehabilitation. What practitioner is most likely to perform this?",
+    "options": [
+      "Dietitian",
+      "Cardiologist",
+      "Chiropractor or osteopath",
+      "Pharmacist"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Fatima complains of dizziness after combining her prescribed BP medicine with herbal tea.What should the nurse do first?",
+    "options": [
+      "A. Stop the herbs immediately",
+      "B. Notify the herbalist",
+      "C. Educate her on herb-drug interactions and monitor BP",
+      "D. Refer her to a neurologist"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Madam Chioma, a 65-year-old woman with arthritis, reports taking turmeric daily to manage her joint pain. What should the nurse do first?",
+    "options": [
+      "Tell her to stop immediately",
+      "Report her to the physician",
+      "Assess for any interaction with her medications",
+      "Encourage her to take a higher dose"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Mr. Adewale, a 58-year-old man with hypertension, is taking hibiscus tea along with his prescribed antihypertensives. What is the nurse's best response?",
+    "options": [
+      "Warn him of kidney damage",
+      "Discourage him to use more herbs",
+      "Assess for signs of hypotension",
+      "Stop his conventional medications"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Mr. Obinna is trying a ketogenic diet to manage his type 2 diabetes. What must the norse caution him about?",
+    "options": [
+      "The diet may increase epilepsy risk",
+      "High carbohydrate intake",
+      "Potential hypoglycemia",
+      "Increase in gluten"
+    ],
+    "answer": 2
+  },
+  {
+    "course": "Pharmacology",
+    "question": "Mrs. Adebayo, a 50-year-old patient, reports taking high doses of vitamin A. What is the nurse's immediate concern?",
+    "options": [
+      "Her calcium level",
+      "Vitamin A toxicity",
+      "Skin rash",
+      "Protein loss"
+    ],
+    "answer": 1
+  }
+]

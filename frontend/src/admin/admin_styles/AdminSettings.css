@@ -1,0 +1,140 @@
+/* src/admin_styles/AdminSettings.css */
+
+/* General page styles */
+.admin-settings {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+  color: #333;
+  background-color: #f9f9f9;
+  min-height: 100vh;
+}
+
+/* Dark mode */
+.dark-mode .admin-settings {
+  background-color: #1e1e2f;
+  color: #f0f0f0;
+}
+
+/* Each settings section */
+.settings-section {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  background-color: #fff;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark-mode .settings-section {
+  background-color: #2c2c3e;
+}
+
+/* Section headings */
+.settings-section h2 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+/* Labels and inputs */
+label {
+  display: block;
+  margin: 0.5rem 0;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 0.4rem;
+  margin-top: 0.2rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.dark-mode input[type="text"],
+.dark-mode input[type="email"],
+.dark-mode input[type="password"] {
+  background-color: #3a3a4e;
+  color: #f0f0f0;
+  border: 1px solid #555;
+}
+
+/* Buttons */
+button {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #4caf50;
+  color: white;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+/* Toggle switches */
+.toggle-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  margin: 0.5rem 0;
+}
+
+.toggle-label input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 50px;
+  height: 24px;
+  background-color: #ccc;
+  border-radius: 34px;
+  transition: 0.4s;
+  cursor: pointer;
+}
+
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: 0.4s;
+}
+
+input:checked + .toggle-slider {
+  background-color: #4caf50;
+}
+
+input:checked + .toggle-slider::before {
+  transform: translateX(26px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .admin-settings {
+    padding: 1rem;
+  }
+
+  .settings-section {
+    padding: 0.8rem;
+  }
+
+  button {
+    width: 100%;
+  }
+}

@@ -1,0 +1,6 @@
+/* fyp.css — legacy styles deprecated. All styles now in dashboard.css */
+/* This file is intentionally left minimal to avoid CSS conflicts */
+
+.fyp-wrapper {
+  width: 100%;
+}

@@ -1,0 +1,366 @@
+/* Prevent page scroll */
+html, body{
+height:100%;
+margin:0;
+padding:0;
+overflow:hidden;
+}
+
+/* Background */
+body{
+background:
+linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),
+url("/src/assets/bg-health.jpeg");
+
+background-size:cover;
+background-position:center;
+background-repeat:no-repeat;
+background-attachment:fixed;
+}
+
+.review-wrapper{
+width:100%;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+padding:30px;
+box-sizing:border-box;
+}
+
+/* Glass card */
+.review-card{
+width:800px;
+height:85vh;
+
+background:rgba(0,0,0,0.35);
+backdrop-filter:blur(12px);
+
+border-radius:18px;
+box-shadow:0 10px 40px rgba(0,0,0,0.6);
+
+padding:30px;
+
+display:flex;
+flex-direction:column;
+
+overflow:hidden;
+overflow-x:hidden;
+
+overscroll-behavior:none;
+}
+
+/* Scroll area */
+.review-scroll{
+overflow-y:auto;
+overflow-x:hidden;
+
+padding-right:10px;
+
+scrollbar-width:none;
+-ms-overflow-style:none;
+
+overscroll-behavior:contain;
+}
+
+.review-scroll::-webkit-scrollbar{
+display:none;
+}
+
+.review-title{
+text-align:center;
+font-size:28px;
+margin-bottom:10px;
+color:#e2fbe5;
+}
+
+.review-score{
+text-align:center;
+font-size:18px;
+margin-bottom:25px;
+color:#22c55e;
+}
+
+/* ========================= */
+/* LEGEND */
+/* ========================= */
+
+.review-legend{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:20px;
+margin-bottom:25px;
+text-align:center;
+}
+
+.legend-item{
+display:flex;
+align-items:center;
+justify-content:center;
+gap:8px;
+font-size:14px;
+color:#e5e7eb;
+}
+
+.legend-box{
+width:16px;
+height:16px;
+border-radius:4px;
+}
+
+.correct{background:#22c55e;}
+.wrong{background:#ef4444;}
+.answered{background:#eab308;}
+.not-answered{background:#64748b;}
+
+
+/* ========================= */
+/* FUTURISTIC CIRCULAR STATS */
+/* ========================= */
+
+.review-stats-circles{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:20px;
+margin-bottom:35px;
+text-align:center;
+}
+
+.stat-circle-card{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:8px;
+}
+
+.stat-circle{
+--percent:0;
+
+width:90px;
+height:90px;
+border-radius:50%;
+
+display:flex;
+align-items:center;
+justify-content:center;
+
+font-weight:600;
+font-size:16px;
+color:white;
+
+background:
+conic-gradient(
+currentColor calc(var(--percent)*1%),
+rgba(255,255,255,0.1) 0
+);
+
+position:relative;
+transition:all 1.2s ease;
+}
+
+.stat-circle::before{
+content:"";
+position:absolute;
+width:68px;
+height:68px;
+background:rgba(0,0,0,0.85);
+border-radius:50%;
+}
+
+.stat-circle span{
+position:relative;
+z-index:2;
+}
+
+.circle-label{
+font-size:13px;
+color:#cbd5f5;
+}
+
+.answered-circle{
+color:#eab308;
+box-shadow:0 0 15px rgba(234,179,8,0.6);
+}
+
+.notanswered-circle{
+color:#64748b;
+box-shadow:0 0 12px rgba(100,116,139,0.5);
+}
+
+.correct-circle{
+color:#22c55e;
+box-shadow:0 0 18px rgba(34,197,94,0.7);
+}
+
+.wrong-circle{
+color:#ef4444;
+box-shadow:0 0 18px rgba(239,68,68,0.7);
+}
+
+
+/* ========================= */
+/* QUESTIONS REVIEW TITLE */
+/* ========================= */
+
+.questions-review-title{
+text-align:center;
+font-size:26px;
+font-weight:700;
+margin-bottom:25px;
+letter-spacing:2px;
+color:white;
+position:relative;
+}
+
+/* individual letters */
+
+.questions-review-title span{
+display:inline-block;
+transition:transform 0.3s ease, text-shadow 0.3s ease;
+animation:letterPop 6s infinite;
+}
+
+/* staggered animation */
+
+.questions-review-title span:nth-child(1){animation-delay:0s;}
+.questions-review-title span:nth-child(2){animation-delay:0.2s;}
+.questions-review-title span:nth-child(3){animation-delay:0.4s;}
+.questions-review-title span:nth-child(4){animation-delay:0.6s;}
+.questions-review-title span:nth-child(5){animation-delay:0.8s;}
+.questions-review-title span:nth-child(6){animation-delay:1s;}
+.questions-review-title span:nth-child(7){animation-delay:1.2s;}
+.questions-review-title span:nth-child(8){animation-delay:1.4s;}
+.questions-review-title span:nth-child(9){animation-delay:1.6s;}
+.questions-review-title span:nth-child(10){animation-delay:1.8s;}
+.questions-review-title span:nth-child(11){animation-delay:2s;}
+.questions-review-title span:nth-child(12){animation-delay:2.2s;}
+.questions-review-title span:nth-child(13){animation-delay:2.4s;}
+.questions-review-title span:nth-child(14){animation-delay:2.6s;}
+.questions-review-title span:nth-child(15){animation-delay:2.8s;}
+
+/* pop animation */
+
+@keyframes letterPop{
+
+0%{
+transform:scale(1);
+text-shadow:none;
+}
+
+15%{
+transform:scale(1.35);
+text-shadow:
+0 0 6px #fff,
+0 0 14px #22c55e,
+0 0 24px #22c55e;
+}
+
+30%{
+transform:scale(1);
+text-shadow:none;
+}
+
+100%{
+transform:scale(1);
+}
+
+}
+
+
+/* ========================= */
+/* LOADING CIRCLES */
+/* ========================= */
+
+.questions-review-title::after{
+
+content:"";
+display:inline-block;
+margin-left:10px;
+width:6px;
+height:6px;
+border-radius:50%;
+background:#22c55e;
+
+box-shadow:
+12px 0 #22c55e,
+24px 0 #22c55e;
+
+animation:loadingDots 1.5s infinite ease-in-out;
+}
+
+@keyframes loadingDots{
+
+0%{opacity:0.3;}
+
+50%{opacity:1;}
+
+100%{opacity:0.3;}
+
+}
+
+
+/* ========================= */
+/* QUESTIONS */
+/* ========================= */
+
+.review-questions{
+display:flex;
+flex-direction:column;
+gap:20px;
+}
+
+.review-question-card{
+background:rgba(255,255,255,0.08);
+padding:15px;
+border-radius:12px;
+border:1px solid rgba(255,255,255,0.08);
+}
+
+.review-question{
+font-weight:600;
+margin-bottom:8px;
+color:#f1f5f9;
+}
+
+.review-answers{
+font-size:14px;
+}
+
+.correct-text{color:#22c55e;}
+.wrong-text{color:#ef4444;}
+.not-answered-text{color:#94a3b8;}
+.correct-answer-text{color:#22c55e;margin-top:4px;}
+
+/* Button */
+
+.review-new-quiz-button{
+margin-top:25px;
+width:100%;
+padding:14px;
+border:none;
+border-radius:12px;
+
+background:linear-gradient(90deg,#22c55e,#4ade80);
+color:white;
+
+font-size:16px;
+cursor:pointer;
+
+transition:all 0.25s;
+}
+
+.review-new-quiz-button:hover{
+transform:scale(1.03);
+box-shadow:0 0 20px #22c55e;
+}
+
+/* ===== DARK MODE SPECIFICITY FOR REVIEW ===== */
+.dark-theme .review-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid #334155;
+}
+
+.dark-theme .review-question-card {
+  background: rgba(30, 41, 59, 0.5);
+  border-color: #334155;
+}
