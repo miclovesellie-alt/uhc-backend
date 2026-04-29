@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Question = require("../models/Question");
+const AdminNotification = require("../models/AdminNotification");
+const { authMiddleware } = require("../middleware/auth.middleware");
 
 // we will inject io later from server.js
 let io;
@@ -44,4 +46,41 @@ router.get("/", async (req, res) => {
   }
 });
 
-module.exports = { router, setIO };
+/* =================================
+   REPORT FAULTY QUESTION
+   /api/questions/report
+================================= */
+router.post("/report", authMiddleware, async (req, res) => {
+  try {
+    const { questionId, reason, questionText } = req.body;
+
+    if (!questionId) {
+      return res.status(400).json({ message: "Question ID is required" });
+    }
+
+    const notification = new AdminNotification({
+      sender: req.userId,
+      message: `🚩 Question Reported: "${questionText || questionId}" \nReason: ${reason || "No reason provided"}`,
+      type: "WARNING"
+    });
+
+    await notification.save();
+
+    // If socket.io is available, broadcast live notification
+    if (io) {
+      io.emit("new_admin_notification", {
+        _id: notification._id,
+        message: notification.message,
+        type: notification.type,
+        createdAt: notification.createdAt
+      });
+    }
+
+    res.json({ message: "Report submitted successfully. Thank you!" });
+  } catch (error) {
+    console.error("Error reporting question:", error);
+    res.status(500).json({ message: "Failed to submit report" });
+  }
+});
+
+module.exports = { router, setIO };
