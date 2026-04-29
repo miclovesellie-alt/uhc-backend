@@ -104,8 +104,24 @@ safeUse("/api/admin/activity", adminActivityRoutes);
 // =========================
 app.get("/api/courses", async (req, res) => {
   try {
-    const courses = await Course.find({ isActive: true }).sort({ name: 1 });
-    res.json(courses);
+    const [dbCourses, questionCourses] = await Promise.all([
+      Course.find({ isActive: true }).lean(),
+      Question.distinct("course")
+    ]);
+    
+    // Merge names and remove duplicates
+    const allNames = new Set([
+      ...dbCourses.map(c => c.name),
+      ...questionCourses.filter(Boolean)
+    ]);
+    
+    // Sort alphabetically
+    const sorted = Array.from(allNames).sort().map(name => ({
+      name,
+      slug: name.toLowerCase().replace(/\s+/g, "-")
+    }));
+
+    res.json(sorted);
   } catch (err) {
     console.error("Fetch courses error:", err);
     res.status(500).json({ message: "Failed to fetch courses" });
