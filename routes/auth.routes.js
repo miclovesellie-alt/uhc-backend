@@ -223,11 +223,11 @@ router.post("/forgot-password", async (req, res) => {
       }
     );
 
-    const resetUrl = `${process.env.HOST}/reset-password/${token}`;
+    const resetUrl = `${process.env.HOST || 'http://localhost:3000'}/reset-password/${token}`;
 
     const msg = {
       to: email,
-      from: process.env.EMAIL_FROM,
+      from: process.env.EMAIL_FROM || 'noreply@universalhealth.com',
       subject: "Password Reset Request",
       html: `
         <p>You requested a password reset.</p>
@@ -236,7 +236,15 @@ router.post("/forgot-password", async (req, res) => {
       `,
     };
 
-    await sgMail.send(msg);
+    try {
+      await sgMail.send(msg);
+    } catch (mailErr) {
+      console.error("Email sending failed:", mailErr.response?.body || mailErr.message);
+      // 🔥 DEBUG: Log the URL to console so the admin can find it if email service is down
+      console.log("-----------------------------------------");
+      console.log("PASSWORD RESET URL (Email Failed):", resetUrl);
+      console.log("-----------------------------------------");
+    }
 
     res.json({
       message: "If this email exists, a reset link has been sent",
