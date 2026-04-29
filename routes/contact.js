@@ -1,10 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Message = require("../models/Message");
-const sgMail = require("@sendgrid/mail");
-require("dotenv").config();
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const { sendEmail } = require("../utils/mail");
 
 let io;
 const setIO = (_io) => { io = _io; };
@@ -21,9 +18,8 @@ router.post("/", async (req, res) => {
     const newMessage = await Message.create({ name, email, message });
 
     // Send Email to Admin
-    const msg = {
+    await sendEmail({
       to: "boafokyei3@gmail.com",
-      from: process.env.EMAIL_FROM || "unihealthplatform@gmail.com",
       subject: `New Contact Form Submission from ${name}`,
       html: `
         <div style="font-family: sans-serif; padding: 20px; color: #333;">
@@ -35,14 +31,8 @@ router.post("/", async (req, res) => {
           <hr />
           <p style="font-size: 0.8rem; color: #666;">This message was sent from the Uni Health Com landing page.</p>
         </div>
-      `,
-    };
-
-    try {
-      await sgMail.send(msg);
-    } catch (mailErr) {
-      console.error("Mail send error:", mailErr);
-    }
+      `
+    });
 
     // Notify Admin via Socket
     if (io) {

@@ -3,12 +3,10 @@ const router = express.Router();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const sgMail = require("@sendgrid/mail");
+const { sendEmail } = require("../utils/mail");
 const User = require("../models/User");
 const { getSetting } = require("../utils/settings");
 const { createAdminActivity, createUserActivityNotification } = require("../utils/adminLogger");
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // ---------------- SIGNUP ----------------
 router.post("/signup", async (req, res) => {
@@ -146,10 +144,8 @@ router.post("/admin-forgot-password", async (req, res) => {
       resetPasswordExpires: Date.now() + 3600000,
     });
 
-    const resetUrl = `${process.env.HOST}/reset-password/${token}`;
-    const msg = {
+    await sendEmail({
       to: email,
-      from: process.env.EMAIL_FROM,
       subject: "[UHC Admin] Password Reset Request",
       html: `
         <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f8fafc;color:#0f172a;border-radius:16px;border:1px solid #e2e8f0">
@@ -158,10 +154,8 @@ router.post("/admin-forgot-password", async (req, res) => {
           <a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#4255ff;color:white;border-radius:10px;text-decoration:none;font-weight:bold;margin:16px 0">Reset My Password</a>
           <p style="color:#64748b;font-size:0.85rem">This link expires in <strong>1 hour</strong>. If you did not request this, ignore this email.</p>
         </div>
-      `,
-    };
-
-    try { await sgMail.send(msg); } catch (mailErr) { console.error("Email error:", mailErr); }
+      `
+    });
 
     res.json({ message: "If this admin email exists and the secret key is correct, a reset link has been sent" });
   } catch (err) {
@@ -225,26 +219,15 @@ router.post("/forgot-password", async (req, res) => {
 
     const resetUrl = `${process.env.HOST || 'http://localhost:3000'}/reset-password/${token}`;
 
-    const msg = {
+    await sendEmail({
       to: email,
-      from: process.env.EMAIL_FROM || 'noreply@universalhealth.com',
       subject: "Password Reset Request",
       html: `
         <p>You requested a password reset.</p>
         <p><a href="${resetUrl}">Click here to reset your password</a></p>
         <p>This link expires in 1 hour.</p>
-      `,
-    };
-
-    try {
-      await sgMail.send(msg);
-    } catch (mailErr) {
-      console.error("Email sending failed:", mailErr.response?.body || mailErr.message);
-      // 🔥 DEBUG: Log the URL to console so the admin can find it if email service is down
-      console.log("-----------------------------------------");
-      console.log("PASSWORD RESET URL (Email Failed):", resetUrl);
-      console.log("-----------------------------------------");
-    }
+      `
+    });
 
     res.json({
       message: "If this email exists, a reset link has been sent",
