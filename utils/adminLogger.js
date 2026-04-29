@@ -2,6 +2,9 @@ const AdminLog = require('../models/AdminLog');
 const AdminNotification = require('../models/AdminNotification');
 const User = require('../models/User');
 
+let io;
+const setIO = (_io) => { io = _io; };
+
 /**
  * Log an administrative action and notify all other admins.
  * 
@@ -38,6 +41,17 @@ const createAdminActivity = async (adminId, action, message, targetInfo = {}) =>
         });
         await notification.save();
 
+        // 3. Emit real-time notification
+        if (io) {
+            io.emit('ADMIN_NOTIFICATION', {
+                _id: notification._id,
+                message: notification.message,
+                type: notification.type,
+                createdAt: notification.createdAt,
+                senderName: (await User.findById(adminId))?.name || 'Admin'
+            });
+        }
+
         return { log, notification };
     } catch (err) {
         console.error('Error in createAdminActivity:', err);
@@ -60,10 +74,22 @@ const createUserActivityNotification = async (userId, message, type = 'INFO') =>
             type: type
         });
         await notification.save();
+
+        // Emit real-time notification
+        if (io) {
+            io.emit('ADMIN_NOTIFICATION', {
+                _id: notification._id,
+                message: notification.message,
+                type: notification.type,
+                createdAt: notification.createdAt,
+                senderName: (await User.findById(userId))?.name || 'User'
+            });
+        }
+
         return notification;
     } catch (err) {
         console.error('Error in createUserActivityNotification:', err);
     }
 };
 
-module.exports = { createAdminActivity, createUserActivityNotification };
+module.exports = { createAdminActivity, createUserActivityNotification, setIO };

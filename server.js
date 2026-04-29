@@ -57,9 +57,11 @@ io.on("connection", (socket) => {
 // =========================
 // INJECT SOCKET INTO ROUTES
 // =========================
+const { setIO: setLoggerIO } = require("./utils/adminLogger");
 userAdmin.setIO(io);
 questionsRoute.setIO(io);
 contactRoutes.setIO(io);
+setLoggerIO(io);
 
 // =========================
 // MIDDLEWARE
