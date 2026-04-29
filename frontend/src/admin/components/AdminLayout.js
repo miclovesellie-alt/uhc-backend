@@ -4,7 +4,7 @@ import { UserContext } from "../../context/UserContext";
 import "../admin_styles/AdminLayout.css";
 import {
   LayoutDashboard, Users, HelpCircle, Upload,
-  Bell, Settings, LogOut, Menu, X, ChevronRight, FileText, Shield, Library, Mail, Layout, Trash2
+  Bell, Settings, LogOut, Menu, X, FileText, Shield, Library, Mail, Layout, Trash2
 } from "lucide-react";
 
 const baseNavItems = [

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api'; // replace with your backend URL if different
+const API_URL = 'https://uhc-backend.onrender.com/api'; // replace with your backend URL if different
 
 const api = axios.create({
   baseURL: API_URL,

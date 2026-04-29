@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { UserContext } from "../context/UserContext";
 import { 
   FaPencilAlt, FaMedal, FaStar, FaTrophy, FaCog, FaMoon, FaSun, FaGlobe, 
-  FaLock, FaBell, FaTimes, FaCheckCircle, FaUser, FaEnvelope, FaMapMarkerAlt, 
-  FaUserGraduate, FaChevronRight 
+  FaLock, FaTimes, FaCheckCircle, FaUser, FaEnvelope, FaMapMarkerAlt, 
+  FaUserGraduate 
 } from "react-icons/fa";
 import "../styles/profile.css";
 import countries from "../data/countries";

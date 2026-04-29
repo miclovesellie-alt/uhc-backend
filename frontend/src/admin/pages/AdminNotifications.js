@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Check } from "lucide-react";
 import axios from "axios";
 
@@ -7,10 +7,8 @@ const NOTIF_TYPES = ["All", "Users", "System", "Quiz", "Security"];
 export default function AdminNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState("All");
-  const [noScreenshot, setNoScreenshot] = useState(false);
-  const [maintenance, setMaintenance] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     try {
       const [notifsRes, ssRes, mmRes] = await Promise.all([
         axios.get("/api/admin/activity/notifications"),
@@ -21,13 +19,11 @@ export default function AdminNotifications() {
       const ssActive = ssRes.data.value === true;
       const mmActive = mmRes.data.value === true;
       
-      setNoScreenshot(ssActive);
-      setMaintenance(mmActive);
       setNotifications(processNotifications(notifsRes.data, ssActive, mmActive));
     } catch (err) {
       console.error("Failed to load notifications", err);
     }
-  };
+  }, []);
 
   const processNotifications = (backendNotifs, ss, mm) => {
     const list = [];
@@ -56,7 +52,7 @@ export default function AdminNotifications() {
 
 
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = notifications.filter(n => filter === "All" || n.type === filter);
   const unread = notifications.filter(n => !n.read).length;

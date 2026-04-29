@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Search, BookMarked, BookOpen, ChevronRight, ArrowLeft, GraduationCap } from "lucide-react";
+import { BookMarked, BookOpen, ChevronRight, ArrowLeft, GraduationCap } from "lucide-react";
 import "../styles/library.css";
 
 function Library() {

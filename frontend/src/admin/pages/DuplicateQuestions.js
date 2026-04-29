@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Copy, Trash2, Edit2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Trash2, AlertTriangle, RefreshCw } from "lucide-react";
 
 export default function DuplicateQuestions() {
   const [duplicates, setDuplicates] = useState([]);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Trash2, RotateCcw, AlertTriangle, Search, Info } from "lucide-react";
+import { Trash2, RotateCcw, AlertTriangle, Search } from "lucide-react";
 import "../../admin_styles/AdminLibrary.css";
 
 export default function AdminRecycleBin() {

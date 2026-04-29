@@ -43,7 +43,7 @@ function Signup({ onFlip }) {
 
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/auth/signup",
+        "https://uhc-backend.onrender.com/api/auth/signup",
         formData
       );
 

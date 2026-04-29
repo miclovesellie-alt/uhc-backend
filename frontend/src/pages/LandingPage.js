@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
 import { 
-  Users, 
   BookOpen, 
   ShieldCheck, 
   Zap, 
@@ -11,7 +10,6 @@ import {
   Trophy, 
   ArrowRight,
   CheckCircle2,
-  Mail,
   Smartphone,
   LayoutDashboard,
   Menu,
@@ -133,15 +131,6 @@ function LandingPage() {
     }, 20);
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: { opacity: 1, transition: { staggerChildren: 0.1 } }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-  };
 
   return (
     <div className="landing-container">

@@ -35,7 +35,7 @@ export const UserProvider = ({ children }) => {
 
     // ✅ Validate token in background without immediately logging out
     axios
-      .get("http://localhost:5000/api/user", {
+      .get("https://uhc-backend.onrender.com/api/user", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {

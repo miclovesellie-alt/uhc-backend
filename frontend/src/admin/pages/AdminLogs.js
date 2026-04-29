@@ -49,9 +49,6 @@ export default function AdminLogs() {
     URL.revokeObjectURL(url);
   };
 
-  const formatTs = (ts) => {
-    try { return new Date(ts).toLocaleString(); } catch { return ts; }
-  };
 
   const getActionColor = (action = "") => {
     if (action.toLowerCase().includes("delet")) return "red";

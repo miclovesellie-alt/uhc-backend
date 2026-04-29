@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Plus, Trash2, Search, Image as ImageIcon, Send, Layout, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Send, Layout, AlertTriangle } from "lucide-react";
 import "../../admin_styles/AdminLibrary.css";
 
 export default function AdminFeed() {

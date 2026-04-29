@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Mail, Trash2, CheckCircle, Clock, Search } from "lucide-react";
+import { Mail, Trash2, Clock, Search } from "lucide-react";
 import "../../admin_styles/AdminMessages.css";
 
 export default function AdminMessages() {

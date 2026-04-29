@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Search, Shield, Key, Trash2, RefreshCw } from "lucide-react";
+import { Search, Shield, RefreshCw } from "lucide-react";
 
 const logAction = (action) => {
   const logs = JSON.parse(localStorage.getItem("adminLogs") || "[]");

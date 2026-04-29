@@ -3,9 +3,8 @@ import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import "../styles/dashboard.css";
 
-import {
   Home, BookOpen, ClipboardList, User, LogOut,
-  Plus, Search, BarChart2, ChevronRight, Menu, X
+  Search, BarChart2, ChevronRight, Menu, X
 } from "lucide-react";
 
 function DashboardLayout() {
@@ -14,7 +13,6 @@ function DashboardLayout() {
   const { user, logout } = useContext(UserContext);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const addPostBtnRef = useRef();
   const dropdownRef = useRef();
   const logoDropdownRef = useRef();
   const hideTimeoutRef = useRef(null);
@@ -46,14 +44,6 @@ function DashboardLayout() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleAddPostClick = () => {
-    if (!dropdownRef.current) return;
-    dropdownRef.current.classList.toggle("show");
-    if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
-    hideTimeoutRef.current = setTimeout(() => {
-      if (dropdownRef.current) dropdownRef.current.classList.remove("show");
-    }, 4000);
-  };
 
   const navItems = [
     { icon: <Home size={18} />, label: "Home", path: "/dashboard" },
