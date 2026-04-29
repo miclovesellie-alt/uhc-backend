@@ -14,9 +14,7 @@ function DashboardLayout() {
   const { user, logout } = useContext(UserContext);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const dropdownRef = useRef();
   const logoDropdownRef = useRef();
-  const hideTimeoutRef = useRef(null);
 
   const isActive = (path) => location.pathname === path;
 
