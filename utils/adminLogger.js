@@ -44,4 +44,26 @@ const createAdminActivity = async (adminId, action, message, targetInfo = {}) =>
     }
 };
 
-module.exports = { createAdminActivity };
+/**
+ * Notify admins of a user-initiated activity.
+ * 
+ * @param {string} userId - ID of the user performing the action
+ * @param {string} message - Human readable message
+ * @param {string} type - Notification type (INFO, WARNING, DANGER)
+ */
+const createUserActivityNotification = async (userId, message, type = 'INFO') => {
+    try {
+        const notification = new AdminNotification({
+            sender: userId, // User is the sender in this context
+            recipient: null, // broadcast to all admins
+            message: message,
+            type: type
+        });
+        await notification.save();
+        return notification;
+    } catch (err) {
+        console.error('Error in createUserActivityNotification:', err);
+    }
+};
+
+module.exports = { createAdminActivity, createUserActivityNotification };

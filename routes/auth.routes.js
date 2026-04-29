@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const sgMail = require("@sendgrid/mail");
 const User = require("../models/User");
 const { getSetting } = require("../utils/settings");
-const { createAdminActivity } = require("../utils/adminLogger");
+const { createAdminActivity, createUserActivityNotification } = require("../utils/adminLogger");
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
@@ -42,12 +42,11 @@ router.post("/signup", async (req, res) => {
 
     await user.save();
 
-    // Log Activity (Broadcast to all admins)
-    await createAdminActivity(
+    // Log Activity for Admins
+    await createUserActivityNotification(
       user._id, 
-      'USER_REGISTRATION', 
       `New user joined: "${name}" (${category})`, 
-      { type: 'User', id: user._id, details: { name, email, category, country }, notifType: 'INFO' }
+      'INFO'
     );
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
@@ -96,6 +95,15 @@ router.post("/login", async (req, res) => {
     // Add login point
     user.points = (user.points || 0) + 1;
     await user.save();
+
+    // Notify Admins of User Login
+    if (!['admin', 'superadmin'].includes(user.role)) {
+      await createUserActivityNotification(
+        user._id,
+        `User logged in: "${user.name}" (${user.category || 'User'})`,
+        'INFO'
+      );
+    }
 
     // Log Activity if Admin
     if (['admin', 'superadmin'].includes(user.role)) {
