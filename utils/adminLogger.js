@@ -6,7 +6,8 @@ let io;
 const setIO = (_io) => { io = _io; };
 
 /**
- * Log an administrative action and notify all other admins.
+ * Log an administrative action and notify all admins.
+ * Now every log also creates a notification.
  * 
  * @param {string} adminId - ID of the admin performing the action
  * @param {string} action - Action identifier (e.g. 'DELETE_BOOK')
@@ -25,30 +26,25 @@ const createAdminActivity = async (adminId, action, message, targetInfo = {}) =>
         });
         await log.save();
 
-        // 2. Create the Notification for all other admins
-        const admins = await User.find({ 
-            role: { $in: ['admin', 'superadmin'] },
-            _id: { $ne: adminId } 
-        });
-
-        // We create a single broadcast notification
-        // Note: recipient is null for broadcast, but we can track read status in readBy array
+        // 2. Create the Notification for all admins
+        // We include the performing admin in the notification so everyone sees the full history
         const notification = new AdminNotification({
             sender: adminId,
             recipient: null, // broadcast
-            message: message,
+            message: `${action.replace(/_/g, ' ')}: ${message}`,
             type: targetInfo.notifType || 'INFO'
         });
         await notification.save();
 
         // 3. Emit real-time notification
         if (io) {
+            const sender = await User.findById(adminId).select('name');
             io.emit('ADMIN_NOTIFICATION', {
                 _id: notification._id,
                 message: notification.message,
                 type: notification.type,
                 createdAt: notification.createdAt,
-                senderName: (await User.findById(adminId))?.name || 'Admin'
+                senderName: sender?.name || 'Admin'
             });
         }
 
@@ -68,8 +64,8 @@ const createAdminActivity = async (adminId, action, message, targetInfo = {}) =>
 const createUserActivityNotification = async (userId, message, type = 'INFO') => {
     try {
         const notification = new AdminNotification({
-            sender: userId, // User is the sender in this context
-            recipient: null, // broadcast to all admins
+            sender: userId, 
+            recipient: null, 
             message: message,
             type: type
         });
@@ -77,12 +73,13 @@ const createUserActivityNotification = async (userId, message, type = 'INFO') =>
 
         // Emit real-time notification
         if (io) {
+            const sender = await User.findById(userId).select('name');
             io.emit('ADMIN_NOTIFICATION', {
                 _id: notification._id,
                 message: notification.message,
                 type: notification.type,
                 createdAt: notification.createdAt,
-                senderName: (await User.findById(userId))?.name || 'User'
+                senderName: sender?.name || 'User'
             });
         }
 
