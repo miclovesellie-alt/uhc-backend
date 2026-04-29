@@ -37,7 +37,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*", // Allows any frontend to connect to socket
     methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
@@ -64,7 +64,7 @@ contactRoutes.setIO(io);
 // =========================
 // MIDDLEWARE
 // =========================
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(cors({ origin: "*" })); // Allows any frontend to call API routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
