@@ -3,6 +3,7 @@ import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import "../styles/dashboard.css";
 
+import {
   Home, BookOpen, ClipboardList, User, LogOut,
   Search, BarChart2, ChevronRight, Menu, X
 } from "lucide-react";
