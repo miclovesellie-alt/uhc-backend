@@ -4,7 +4,7 @@ import { ArrowLeft, Flag, BookOpen, CheckCircle, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import "../styles/quiz.css";
-import axios from "axios";
+import api from "../api/api";
 import coursesTopics from "../data/courses_topics.json";
 
 /* ── Book Loader ── */
@@ -48,7 +48,7 @@ const avatarColor = (name = "") => {
 /* ── Load questions ── */
 const loadQ = async (course, limit) => {
   try {
-    const res = await axios.get(`/api/questions?course=${encodeURIComponent(course)}&limit=${limit}`);
+    const res = await api.get(`/questions?course=${encodeURIComponent(course)}&limit=${limit}`);
     return res.data;
   } catch { return []; }
 };
@@ -84,10 +84,7 @@ export default function QuizPage() {
 
   const awardPoints = async (amount, reason) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post("/api/points/add", { amount, reason }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post("/points/add", { amount, reason });
       if (user) setUser({ ...user, points: res.data.totalPoints });
     } catch (err) {
       console.error("Failed to award points", err);
@@ -98,13 +95,13 @@ export default function QuizPage() {
 
   /* ── Fetch Global Settings ── */
   useEffect(() => {
-    axios.get("/api/settings/noScreenshot").then(res => {
+    api.get("/settings/noScreenshot").then(res => {
       if (res.data.value !== null) setNoSS(res.data.value);
     }).catch(() => {});
   }, []);
 
   /* ── Fetch courses ── */
-  useEffect(() => { axios.get("/api/courses").then(r => setCourses(r.data)).catch(() => {}); }, []);
+  useEffect(() => { api.get("/courses").then(r => setCourses(r.data)).catch(() => {}); }, []);
 
   /* ── No-screenshot ── */
   useEffect(() => {

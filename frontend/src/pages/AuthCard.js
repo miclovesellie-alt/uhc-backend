@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import axios from "axios";
+import api from "../api/api";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import countriesList from "../data/countries";
@@ -38,7 +38,7 @@ function AuthCard() {
       } else {
         payload.phone = formData.phonePrefix + formData.phone;
       }
-      const res = await axios.post("/api/auth/login", payload);
+      const res = await api.post("/auth/login", payload);
       const { token, user } = res.data;
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
@@ -67,7 +67,7 @@ function AuthCard() {
     if (!formData.category) { setError("Please select a category!"); return; }
 
     try {
-      await axios.post("/api/auth/signup", {
+      await api.post("/auth/signup", {
         name: formData.name,
         email: formData.email,
         phone: formData.phonePrefix + formData.phone,
@@ -88,7 +88,7 @@ function AuthCard() {
     e.preventDefault();
     setError(""); setSuccess("");
     try {
-      await axios.post("/api/auth/forgot-password", { email: formData.email });
+      await api.post("/auth/forgot-password", { email: formData.email });
       setSuccess("Reset email sent! Check your inbox.");
       setTimeout(() => setActivePage("login"), 3000);
     } catch (err) {

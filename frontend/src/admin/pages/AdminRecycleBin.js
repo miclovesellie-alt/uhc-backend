@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import { Trash2, RotateCcw, AlertTriangle, Search } from "lucide-react";
 import "../../admin_styles/AdminLibrary.css";
 
@@ -16,10 +16,7 @@ export default function AdminRecycleBin() {
 
   const fetchBin = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get("/api/admin/recycle-bin", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get("/admin/recycle-bin");
       setItems(res.data);
     } catch (err) {
       console.error("Failed to fetch bin", err);
@@ -30,10 +27,7 @@ export default function AdminRecycleBin() {
 
   const handleRestore = async (id) => {
     try {
-      const token = localStorage.getItem("token");
-      await axios.post(`/api/admin/recycle-bin/restore/${id}`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post(`/admin/recycle-bin/restore/${id}`);
       fetchBin();
     } catch (err) {
       alert("Restore failed");
@@ -48,10 +42,7 @@ export default function AdminRecycleBin() {
   const confirmPermanentDelete = async () => {
     if (!itemToDelete) return;
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`/api/admin/recycle-bin/${itemToDelete}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/admin/recycle-bin/${itemToDelete}`);
       setShowDeleteModal(false);
       setItemToDelete(null);
       fetchBin();

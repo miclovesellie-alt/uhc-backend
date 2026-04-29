@@ -1,4 +1,6 @@
-const BASE_URL = "https://uhc-backend.onrender.com";
+const BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:5000' 
+  : 'https://uhc-backend.onrender.com';
 
 export const getFileUrl = (path) => {
   if (!path) return "";

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api/api";
 import { motion } from "framer-motion";
 import { 
   BookOpen, 
@@ -348,7 +348,7 @@ function LandingPage() {
             <form className="footer-contact-form" onSubmit={async (e) => { 
               e.preventDefault(); 
               try {
-                await axios.post("/api/contact", contactForm);
+                await api.post("/contact", contactForm);
                 setContactStatus({ type: 'success', msg: 'Thank you! Your message has been sent to our team.' });
                 setContactForm({ name: "", email: "", message: "" });
                 setTimeout(() => setContactStatus(null), 5000);

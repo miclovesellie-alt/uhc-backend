@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api/api";
 import { ArrowLeft, Download, Maximize2, Minimize2, BookOpen } from "lucide-react";
 import { getFileUrl } from "../utils/config";
 import "../styles/BookViewer.css";
@@ -15,7 +15,7 @@ export default function BookViewer() {
   useEffect(() => {
     const fetchBook = async () => {
       try {
-        const res = await axios.get("/api/library/books");
+        const res = await api.get("/library/books");
         const found = res.data.find(b => b._id === id);
         setBook(found);
       } catch (err) {

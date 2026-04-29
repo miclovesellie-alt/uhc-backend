@@ -7,7 +7,7 @@ import {
 } from "react-icons/fa";
 import "../styles/profile.css";
 import countries from "../data/countries";
-import axios from "axios";
+import api from "../api/api";
 
 const avatarGradient = (name = "") => {
   const palettes = [
@@ -31,11 +31,7 @@ function ProfilePage({ user, setUser }) {
 
   const handleSaveChanges = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.put(
-        `/api/users/${user._id}`, user,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.put(`/users/${user._id}`, user);
       setUser(res.data);
       setIsEditing(false);
     } catch (err) {
@@ -46,7 +42,7 @@ function ProfilePage({ user, setUser }) {
 
   const handlePasswordReset = async () => {
     try {
-      await axios.post("/api/auth/forgot-password", { email: user.email });
+      await api.post("/auth/forgot-password", { email: user.email });
       setResetSent(true);
       setTimeout(() => setResetSent(false), 5000);
     } catch (err) {

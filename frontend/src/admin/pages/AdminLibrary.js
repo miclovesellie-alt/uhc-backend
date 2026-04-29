@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import { Book, Plus, Trash2, Search, BookOpen, FileUp, Download, EyeOff } from "lucide-react";
 import "../../admin_styles/AdminLibrary.css";
 
@@ -25,8 +25,8 @@ export default function AdminLibrary() {
   const fetchData = async () => {
     try {
       const [booksRes, coursesRes] = await Promise.all([
-        axios.get("/api/library/books"),
-        axios.get("/api/library/courses")
+        api.get("/library/books"),
+        api.get("/library/courses")
       ]);
       setBooks(booksRes.data);
       setCourses(coursesRes.data);
@@ -50,10 +50,8 @@ export default function AdminLibrary() {
     formData.append("isDownloadable", newBook.isDownloadable);
 
     try {
-      const token = localStorage.getItem("token");
-      await axios.post("/api/library/books", formData, {
+      await api.post("/library/books", formData, {
         headers: { 
-          Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data"
         },
         onUploadProgress: (progressEvent) => {
@@ -84,15 +82,7 @@ export default function AdminLibrary() {
     if (!bookToDelete) return;
     
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Session expired. Please log in again.");
-        return;
-      }
-
-      await axios.delete(`/api/library/books/${bookToDelete}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/library/books/${bookToDelete}`);
       
       setShowDeleteModal(false);
       setBookToDelete(null);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { RefreshCw, Check } from "lucide-react";
-import axios from "axios";
+import api from "../../api/api";
 
 const NOTIF_TYPES = ["All", "Users", "System", "Quiz", "Security"];
 
@@ -11,9 +11,9 @@ export default function AdminNotifications() {
   const load = useCallback(async () => {
     try {
       const [notifsRes, ssRes, mmRes] = await Promise.all([
-        axios.get("/api/admin/activity/notifications"),
-        axios.get("/api/settings/noScreenshot"),
-        axios.get("/api/settings/maintenanceMode")
+        api.get("/admin/activity/notifications"),
+        api.get("/settings/noScreenshot"),
+        api.get("/settings/maintenanceMode")
       ]);
       
       const ssActive = ssRes.data.value === true;
@@ -105,7 +105,7 @@ export default function AdminNotifications() {
             }} onClick={async () => {
               if (!n.read && !['ss','mm'].includes(n.id)) {
                 try {
-                  await axios.patch(`/api/admin/activity/notifications/${n.id}/read`);
+                  await api.patch(`/admin/activity/notifications/${n.id}/read`);
                   setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x));
                 } catch (err) { console.error(err); }
               } else {

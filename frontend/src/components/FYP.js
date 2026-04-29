@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 import { getFileUrl } from "../utils/config";
-import axios from "axios";
+import api from "../api/api";
 import "../styles/dashboard.css";
 
 import fbLogo from "../assets/fb.webp";
@@ -34,10 +34,7 @@ export default function FYP({ refresh }) {
 
   const awardPoints = async (amount, reason) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post("/api/points/add", { amount, reason }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post("/points/add", { amount, reason });
       // Update local user context so profile shows new points
       if (user) setUser({ ...user, points: res.data.totalPoints });
     } catch (err) {
@@ -53,7 +50,7 @@ export default function FYP({ refresh }) {
     setLoading(true);
     try {
       // 1. Try fetching from Admin Feed first
-      const adminRes = await axios.get("/api/admin/feed");
+      const adminRes = await api.get("/admin/feed");
       let allPosts = adminRes.data;
 
       // 2. If admin feed is empty or short, fetch from a public health news source as fallback

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../api/api";
 import { useNavigate } from "react-router-dom";
 import "../styles/auth.css";
 
@@ -23,7 +23,7 @@ export default function AdminRecovery() {
 
     // The platform secret key is checked on backend
     try {
-      await axios.post("/api/auth/admin-forgot-password", {
+      await api.post("/auth/admin-forgot-password", {
         email,
         secretKey,
       });

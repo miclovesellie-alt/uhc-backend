@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/api";
 
 export const UserContext = createContext();
 
@@ -34,10 +34,8 @@ export const UserProvider = ({ children }) => {
     }
 
     // ✅ Validate token in background without immediately logging out
-    axios
-      .get("https://uhc-backend.onrender.com/api/user", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+    api
+      .get("/user")
       .then((res) => {
         setUser(res.data); // update with fresh data
         localStorage.setItem("user", JSON.stringify(res.data));

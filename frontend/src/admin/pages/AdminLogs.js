@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Trash2, Download, Search, RefreshCw } from "lucide-react";
-import axios from "axios";
+import api from "../../api/api";
 
 const ACTION_TYPES = ["All", "Added", "Edited", "Deleted", "Updated", "Enabled", "Disabled", "Cleared", "Promoted", "Demoted", "Banned", "Reset"];
 
@@ -17,7 +17,7 @@ export default function AdminLogs() {
 
   const loadLogs = async () => {
     try {
-      const res = await axios.get("/api/admin/activity/logs");
+      const res = await api.get("/admin/activity/logs");
       setLogs(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Failed to load logs", err);

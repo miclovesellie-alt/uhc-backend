@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Plus, Search, Edit2, Trash2, BookOpen, ChevronDown, ChevronUp, Copy } from "lucide-react";
-import axios from "axios";
+import api from "../../api/api";
 
 const logAction = (action) => {
   const logs = JSON.parse(localStorage.getItem("adminLogs") || "[]");
@@ -37,7 +37,7 @@ export default function AdminQuestions() {
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/api/questions/all");
+      const res = await api.get("/questions/all");
       setQuestions(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Questions load error:", err);
@@ -47,7 +47,7 @@ export default function AdminQuestions() {
 
   const fetchCourses = async () => {
     try {
-      const res = await axios.get("/api/courses");
+      const res = await api.get("/courses");
       setCoursesFromDB(Array.isArray(res.data) ? res.data : []);
     } catch (err) { console.error("Courses load error:", err); }
   };
@@ -68,7 +68,7 @@ export default function AdminQuestions() {
   /* ── Delete ── */
   const handleDelete = async () => {
     try {
-      await axios.delete(`/api/admin/questions/${deleteId}`);
+      await api.delete(`/admin/questions/${deleteId}`);
       setQuestions(prev => prev.filter(q => q._id !== deleteId));
       logAction(`Deleted question ID: ${deleteId}`);
       showToast("Question deleted");
@@ -79,7 +79,7 @@ export default function AdminQuestions() {
   /* ── Edit ── */
   const handleSave = async () => {
     try {
-      const res = await axios.put(`/api/admin/questions/${editData._id}`, editData);
+      const res = await api.put(`/admin/questions/${editData._id}`, editData);
       setQuestions(prev => prev.map(q => q._id === res.data._id ? res.data : q));
       logAction(`Edited question: "${editData.question?.slice(0, 40)}"`);
       showToast("Question updated");
@@ -93,7 +93,7 @@ export default function AdminQuestions() {
       showToast("Fill all fields and select the correct answer", "error"); return;
     }
     try {
-      const res = await axios.post("/api/admin/questions", newQ);
+      const res = await api.post("/admin/questions", newQ);
       setQuestions(prev => [res.data, ...prev]);
       logAction(`Added question: "${newQ.question?.slice(0, 40)}"`);
       showToast("Question added!");
@@ -106,7 +106,7 @@ export default function AdminQuestions() {
   const handleAddCourse = async () => {
     if (!newCourseName.trim()) return;
     try {
-      const res = await axios.post("/api/courses", { name: newCourseName });
+      const res = await api.post("/courses", { name: newCourseName });
       setCoursesFromDB(prev => [...prev, res.data]);
       logAction(`Added course: "${newCourseName}"`);
       showToast("Course added");

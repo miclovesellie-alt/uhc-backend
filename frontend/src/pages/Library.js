@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useOutletContext, useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../api/api";
 import { BookMarked, BookOpen, ChevronRight, ArrowLeft, GraduationCap } from "lucide-react";
 import "../styles/library.css";
 
@@ -20,8 +20,8 @@ function Library() {
   const fetchLibrary = async () => {
     try {
       const [booksRes, coursesRes] = await Promise.all([
-        axios.get("/api/library/books"),
-        axios.get("/api/library/courses")
+        api.get("/library/books"),
+        api.get("/library/courses")
       ]);
       setBooks(booksRes.data);
       setCourses(coursesRes.data);

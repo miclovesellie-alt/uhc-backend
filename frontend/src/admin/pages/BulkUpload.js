@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import { Upload, FileText, CheckCircle, AlertCircle, X } from "lucide-react";
 import "../../admin_styles/BulkUpload.css";
 
@@ -55,10 +55,7 @@ export default function BulkUpload() {
     setStatus(null);
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.post("/api/upload-questions", { questions }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post("/upload-questions", { questions });
       
       setStatus({ type: "success", message: res.data.message });
       setQuestions([]);

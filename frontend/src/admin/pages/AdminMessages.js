@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import { Mail, Trash2, Clock, Search } from "lucide-react";
 import "../../admin_styles/AdminMessages.css";
 
@@ -15,7 +15,7 @@ export default function AdminMessages() {
 
   const fetchMessages = async () => {
     try {
-      const res = await axios.get("/api/contact/messages");
+      const res = await api.get("/contact/messages");
       setMessages(res.data);
     } catch (err) {
       console.error("Fetch messages failed", err);
@@ -26,7 +26,7 @@ export default function AdminMessages() {
 
   const markAsRead = async (id) => {
     try {
-      await axios.patch(`/api/contact/messages/${id}`, { status: "read" });
+      await api.patch(`/contact/messages/${id}`, { status: "read" });
       setMessages(messages.map(m => m._id === id ? { ...m, status: "read" } : m));
       if (selectedMessage?._id === id) setSelectedMessage({ ...selectedMessage, status: "read" });
     } catch (err) {

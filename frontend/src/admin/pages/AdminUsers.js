@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import { Search, Shield, Ban, Key, Trash2, RefreshCw, Eye, EyeOff } from "lucide-react";
 
 const logAction = (action) => {
@@ -30,7 +30,7 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/api/users");
+      const res = await api.get("/users");
       setUsers(Array.isArray(res.data) ? res.data : []);
     } catch (err) { console.error("Load users failed", err); }
     finally { setLoading(false); }
@@ -38,7 +38,7 @@ export default function AdminUsers() {
 
   const updateUser = async (data, label) => {
     try {
-      await axios.patch(`/api/users/${selectedUser._id}`, data);
+      await api.patch(`/users/${selectedUser._id}`, data);
       logAction(`${label}: ${selectedUser.name}`);
       showToast(`${label} successful`);
       setSelectedUser(null);
@@ -49,7 +49,7 @@ export default function AdminUsers() {
 
   const deleteUser = async () => {
     try {
-      await axios.delete(`/api/users/${selectedUser._id}`);
+      await api.delete(`/users/${selectedUser._id}`);
       logAction(`Deleted user: ${selectedUser.name}`);
       showToast("User deleted");
       setSelectedUser(null);
@@ -63,7 +63,7 @@ export default function AdminUsers() {
       showToast("Password must be at least 4 characters", "error"); return;
     }
     try {
-      await axios.post(`/api/users/${selectedUser._id}/reset-password`, { newPassword });
+      await api.post(`/users/${selectedUser._id}/reset-password`, { newPassword });
       logAction(`Reset password for: ${selectedUser.name}`);
       showToast(`Password reset for ${selectedUser.name}`);
       setResetPasswordModal(false);

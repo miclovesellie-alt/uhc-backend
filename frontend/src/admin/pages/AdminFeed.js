@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import { Plus, Trash2, Send, Layout, AlertTriangle } from "lucide-react";
 import "../../admin_styles/AdminLibrary.css";
 
@@ -19,7 +19,7 @@ export default function AdminFeed() {
 
   const fetchFeed = async () => {
     try {
-      const res = await axios.get("/api/admin/feed");
+      const res = await api.get("/admin/feed");
       setItems(res.data);
     } catch (err) {
       console.error("Failed to fetch feed", err);
@@ -37,10 +37,8 @@ export default function AdminFeed() {
     if (selectedFile) formData.append("image", selectedFile);
 
     try {
-      const token = localStorage.getItem("token");
-      await axios.post("/api/admin/feed", formData, {
+      await api.post("/admin/feed", formData, {
         headers: { 
-          Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data"
         },
         onUploadProgress: (progressEvent) => {
@@ -65,10 +63,7 @@ export default function AdminFeed() {
   const confirmDelete = async () => {
     if (!itemToDelete) return;
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`/api/admin/feed/${itemToDelete._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/admin/feed/${itemToDelete._id}`);
       setShowDeleteConfirm(false);
       setItemToDelete(null);
       fetchFeed();

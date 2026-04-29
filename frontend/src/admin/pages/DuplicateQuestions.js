@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../../api/api";
 import { Trash2, AlertTriangle, RefreshCw } from "lucide-react";
 
 export default function DuplicateQuestions() {
@@ -13,7 +13,7 @@ export default function DuplicateQuestions() {
   const fetchDuplicates = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/api/admin/questions/duplicates/find");
+      const res = await api.get("/admin/questions/duplicates/find");
       setDuplicates(res.data);
     } catch (err) {
       console.error("Fetch duplicates failed", err);
@@ -25,10 +25,7 @@ export default function DuplicateQuestions() {
   const deleteQuestion = async (id) => {
     if (!window.confirm("Are you sure you want to delete this specific question instance?")) return;
     try {
-      const token = localStorage.getItem("token");
-      await axios.delete(`/api/admin/questions/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/admin/questions/${id}`);
       fetchDuplicates();
     } catch (err) {
       alert("Delete failed");

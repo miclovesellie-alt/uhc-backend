@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../api/api";
 
 function Login({ onFlip, onLoginSuccess }) {
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -14,7 +14,7 @@ function Login({ onFlip, onLoginSuccess }) {
     setError("");
 
     try {
-      const res = await axios.post("https://uhc-backend.onrender.com/api/auth/login", formData);
+      const res = await api.post("/auth/login", formData);
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));

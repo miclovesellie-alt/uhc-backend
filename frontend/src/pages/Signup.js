@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import countriesList from "../data/countries";
-import axios from "axios";
+import api from "../api/api";
 
 function Signup({ onFlip }) {
   const [formData, setFormData] = useState({
@@ -42,8 +42,8 @@ function Signup({ onFlip }) {
     }
 
     try {
-      const res = await axios.post(
-        "https://uhc-backend.onrender.com/api/auth/signup",
+      const res = await api.post(
+        "/auth/signup",
         formData
       );
 

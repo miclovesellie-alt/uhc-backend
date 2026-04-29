@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api/api";
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -8,10 +8,7 @@ const Profile = () => {
     const fetchUser = async () => {
       try {
         // Assuming JWT is stored in localStorage
-        const token = localStorage.getItem("token");
-        const res = await axios.get("https://uhc-backend.onrender.com/api/auth/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await api.get("/auth/me");
         setUser(res.data);
       } catch (err) {
         console.log(err);
