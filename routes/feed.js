@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const FeedItem = require("../models/FeedItem");
 const DeletedItem = require("../models/DeletedItem");
+const User = require("../models/User");
 const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -81,6 +82,48 @@ router.put("/:id", authMiddleware, adminOnly, upload.single("image"), async (req
     res.json(item);
   } catch (err) {
     res.status(500).json({ message: "Failed to update item" });
+  }
+});
+
+// @desc    Like a feed item
+router.post("/:id/like", authMiddleware, async (req, res) => {
+  try {
+    const item = await FeedItem.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    item.likes += 1;
+    await item.save();
+
+    res.json({ likes: item.likes });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to like item" });
+  }
+});
+
+// @desc    Add a comment to a feed item
+router.post("/:id/comment", authMiddleware, async (req, res) => {
+  try {
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ message: "Comment text is required" });
+
+    const item = await FeedItem.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const newComment = {
+      name: user.name,
+      text: text,
+      createdAt: new Date()
+    };
+
+    item.comments.push(newComment);
+    await item.save();
+
+    res.json(item.comments);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to add comment" });
   }
 });
 
