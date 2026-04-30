@@ -254,6 +254,13 @@ async function fetchAdminStats() {
   return { totalUsers, totalQuestions, totalCourses, activeUsers, liveUsers };
 }
 
+app.get("/api/admin/presence", (req, res) => {
+  res.json({
+    onlineIds: presenceTracker.getActiveUserIds(),
+    recentIds: presenceTracker.getRecentlyActiveUserIds(3)
+  });
+});
+
 async function emitAdminStats() {
   const stats = await fetchAdminStats();
   io.emit("ADMIN_STATS_UPDATE", stats);
