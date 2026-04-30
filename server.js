@@ -14,6 +14,7 @@ const uploadQuestionsRoute = require("./routes/uploadQuestions");
 const questionsRoute = require("./routes/questions"); // exports { router, setIO }
 const adminQuestionsRoutes = require("./routes/adminQuestions");
 const userAdmin = require("./routes/users.admin"); // exports { router, setIO }
+const userRoutes = require("./routes/user.routes");
 const settingsRoutes = require("./routes/settings");
 const contactRoutes = require("./routes/contact");
 const libraryRoutes = require("./routes/library.routes");
@@ -99,6 +100,8 @@ safeUse("/api/upload-questions", uploadQuestionsRoute);
 safeUse("/api/questions", questionsRoute); // now works
 safeUse("/api/admin/questions", adminQuestionsRoutes);
 safeUse("/api/users", userAdmin);
+safeUse("/api/user", userRoutes);
+safeUse("/api/settings", settingsRoutes);
 safeUse("/api/contact", contactRoutes);
 safeUse("/api/library", libraryRoutes);
 safeUse("/api/admin/recycle-bin", recycleBinRoutes);

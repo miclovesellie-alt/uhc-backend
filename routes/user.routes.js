@@ -21,5 +21,22 @@ router.get("/", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Server error fetching user data" });
   }
 });
+// PUT /api/user - update the logged-in user's profile
+router.put("/", authMiddleware, async (req, res) => {
+  try {
+    const { name, phone, category, country, profileImage } = req.body;
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId, 
+      { name, phone, category, country, profileImage }, 
+      { new: true }
+    ).select("-password");
+    
+    if (!updatedUser) return res.status(404).json({ message: "User not found" });
+    res.json(updatedUser);
+  } catch (err) {
+    console.error("Error updating user:", err.message);
+    res.status(500).json({ message: "Server error updating profile" });
+  }
+});
 
 module.exports = router;
