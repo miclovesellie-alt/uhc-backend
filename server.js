@@ -157,14 +157,15 @@ app.post("/api/courses", async (req, res) => {
   }
 });
 
-app.delete("/api/courses/:id", async (req, res) => {
+app.delete("/api/courses/:name", async (req, res) => {
   try {
-    const { id } = req.params;
+    const name = decodeURIComponent(req.params.name);
     
-    // Optional: Check if there are questions using this course
-    // For now, just delete the course document
-    const deleted = await Course.findByIdAndDelete(id);
-    if (!deleted) return res.status(404).json({ message: "Course not found" });
+    // 1. Delete from Course collection if it exists
+    await Course.findOneAndDelete({ name });
+    
+    // 2. Remove the course from any questions using it
+    await Question.updateMany({ course: name }, { $set: { course: "" } });
     
     res.json({ message: "Course deleted successfully" });
     emitAdminStats();
