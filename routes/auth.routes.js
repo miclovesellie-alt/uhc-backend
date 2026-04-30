@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const { sendEmail } = require("../utils/mail");
 const User = require("../models/User");
 const { getSetting } = require("../utils/settings");
-const { createAdminActivity, createUserActivityNotification } = require("../utils/adminLogger");
+const { createAdminActivity, createUserActivityNotification, createUserActivityLog } = require("../utils/adminLogger");
 
 // ---------------- SIGNUP ----------------
 router.post("/signup", async (req, res) => {
@@ -41,8 +41,9 @@ router.post("/signup", async (req, res) => {
     await user.save();
 
     // Log Activity for Admins
-    await createUserActivityNotification(
+    await createUserActivityLog(
       user._id, 
+      "USER_SIGNUP",
       `New user joined: "${name}" (${category})`, 
       'INFO'
     );
@@ -96,8 +97,9 @@ router.post("/login", async (req, res) => {
 
     // Notify Admins of User Login
     if (!['admin', 'superadmin'].includes(user.role)) {
-      await createUserActivityNotification(
+      await createUserActivityLog(
         user._id,
+        "USER_LOGIN",
         `User logged in: "${user.name}" (${user.category || 'User'})`,
         'INFO'
       );
@@ -269,6 +271,13 @@ router.post("/reset-password", async (req, res) => {
     user.resetPasswordExpires = undefined;
 
     await user.save();
+
+    await createUserActivityLog(
+      user._id,
+      "PASSWORD_RESET",
+      `User reset their password: ${user.name}`,
+      'WARNING'
+    );
 
     res.json({
       message: "Password has been reset successfully",

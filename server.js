@@ -42,15 +42,22 @@ const io = new Server(server, {
   },
 });
 
+const presenceTracker = require("./utils/presenceTracker");
+
 // =========================
 // SOCKET CONNECTION
 // =========================
 io.on("connection", (socket) => {
-  console.log("⚡ Admin connected:", socket.id);
-  emitAdminStats(); // send stats on connect
+  // We don't log 'Admin connected' on every connection since users connect too
+  
+  socket.on("register_presence", (userId) => {
+    presenceTracker.addPresence(socket.id, userId);
+    emitAdminStats(); // Update dashboard live
+  });
 
   socket.on("disconnect", () => {
-    console.log("❌ Admin disconnected:", socket.id);
+    presenceTracker.removePresence(socket.id);
+    emitAdminStats(); // Update dashboard live
   });
 });
 
@@ -217,9 +224,11 @@ async function fetchAdminStats() {
     lastLogin: { $gte: new Date(Date.now() - 1000 * 60 * 60 * 24) },
   });
 
-  console.log(`📊 Stats updated: ${totalUsers} Users, ${totalQuestions} Questions, ${totalCourses} Courses`);
+  const liveUsers = presenceTracker.getActiveCount();
+
+  console.log(`📊 Stats updated: ${totalUsers} Users, ${totalQuestions} Questions, ${totalCourses} Courses, ${liveUsers} Live`);
   
-  return { totalUsers, totalQuestions, totalCourses, activeUsers };
+  return { totalUsers, totalQuestions, totalCourses, activeUsers, liveUsers };
 }
 
 async function emitAdminStats() {

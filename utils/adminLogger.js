@@ -55,23 +55,35 @@ const createAdminActivity = async (adminId, action, message, targetInfo = {}) =>
 };
 
 /**
- * Notify admins of a user-initiated activity.
+ * Log user activity and notify admins.
  * 
  * @param {string} userId - ID of the user performing the action
+ * @param {string} action - Action identifier (e.g. 'USER_LOGIN')
  * @param {string} message - Human readable message
  * @param {string} type - Notification type (INFO, WARNING, DANGER)
  */
-const createUserActivityNotification = async (userId, message, type = 'INFO') => {
+const createUserActivityLog = async (userId, action, message, type = 'INFO') => {
     try {
+        // 1. Create the Log (reuse AdminLog schema for all activity feed)
+        const log = new AdminLog({
+            admin: userId, // We reuse the admin reference to point to the user
+            action: action,
+            targetType: 'user',
+            targetId: userId,
+            details: {}
+        });
+        await log.save();
+
+        // 2. Create Notification
         const notification = new AdminNotification({
             sender: userId, 
             recipient: null, 
-            message: message,
+            message: `${action.replace(/_/g, ' ')}: ${message}`,
             type: type
         });
         await notification.save();
 
-        // Emit real-time notification
+        // 3. Emit real-time notification
         if (io) {
             const sender = await User.findById(userId).select('name');
             io.emit('ADMIN_NOTIFICATION', {
@@ -83,10 +95,10 @@ const createUserActivityNotification = async (userId, message, type = 'INFO') =>
             });
         }
 
-        return notification;
+        return { log, notification };
     } catch (err) {
-        console.error('Error in createUserActivityNotification:', err);
+        console.error('Error in createUserActivityLog:', err);
     }
 };
 
-module.exports = { createAdminActivity, createUserActivityNotification, setIO };
+module.exports = { createAdminActivity, createUserActivityNotification, createUserActivityLog, setIO };
