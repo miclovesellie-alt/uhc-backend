@@ -3,6 +3,21 @@ const router = express.Router();
 const User = require("../models/User");
 const authMiddleware = require("../middleware/auth"); // your JWT middleware
 
+// GET /api/user/leaderboard - return top 5 users by points
+router.get("/leaderboard", async (req, res) => {
+  try {
+    const topUsers = await User.find({ status: "active", role: "user" })
+      .sort({ points: -1 })
+      .limit(5)
+      .select("name category points");
+    
+    res.json(topUsers);
+  } catch (err) {
+    console.error("Error fetching leaderboard:", err.message);
+    res.status(500).json({ message: "Server error fetching leaderboard" });
+  }
+});
+
 // GET /api/user - return the logged-in user's info
 router.get("/", authMiddleware, async (req, res) => {
   try {

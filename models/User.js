@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema(
     points: { type: Number, default: 0 },
     role:   { type: String, default: "user", enum: ["user", "admin", "superadmin"] },
     status: { type: String, default: "active", enum: ["active", "banned"] },
+    lastLoginPointDate: { type: Date },
 
     // ===== Password Reset Fields =====
     resetPasswordToken:   { type: String },

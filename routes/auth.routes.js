@@ -91,9 +91,15 @@ router.post("/login", async (req, res) => {
       expiresIn: "1d",
     });
 
-    // Add login point
-    user.points = (user.points || 0) + 1;
-    await user.save();
+    // Add login point (Max 1 per 24 hours)
+    const now = new Date();
+    const lastPoint = user.lastLoginPointDate;
+
+    if (!lastPoint || (now - lastPoint) >= 24 * 60 * 60 * 1000) {
+      user.points = (user.points || 0) + 1;
+      user.lastLoginPointDate = now;
+      await user.save();
+    }
 
     // Notify Admins of User Login
     if (!['admin', 'superadmin'].includes(user.role)) {
