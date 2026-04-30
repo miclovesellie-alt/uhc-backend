@@ -33,6 +33,11 @@ router.delete("/:id", authMiddleware, adminOnly, async (req, res) => {
     const userToDelete = await User.findById(req.params.id);
     if (!userToDelete) return res.status(404).json({ message: "User not found" });
 
+    // Enforce role hierarchy: only superadmin can delete admin/superadmin
+    if (['admin', 'superadmin'].includes(userToDelete.role) && req.userRole !== 'superadmin') {
+      return res.status(403).json({ message: "Forbidden: Only superadmins can modify admins" });
+    }
+
     const deleted = await User.findByIdAndDelete(req.params.id);
     
     // Log Activity
@@ -56,6 +61,18 @@ router.delete("/:id", authMiddleware, adminOnly, async (req, res) => {
 router.patch("/:id", authMiddleware, adminOnly, async (req, res) => {
   try {
     const oldUser = await User.findById(req.params.id);
+    if (!oldUser) return res.status(404).json({ message: "User not found" });
+
+    // Enforce role hierarchy: only superadmin can update admin/superadmin
+    if (['admin', 'superadmin'].includes(oldUser.role) && req.userRole !== 'superadmin') {
+      return res.status(403).json({ message: "Forbidden: Only superadmins can modify admins" });
+    }
+
+    // Also prevent standard admin from making someone an admin/superadmin
+    if (req.body.role && ['admin', 'superadmin'].includes(req.body.role) && req.userRole !== 'superadmin') {
+      return res.status(403).json({ message: "Forbidden: Only superadmins can assign admin roles" });
+    }
+
     const updated = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!updated) return res.status(404).json({ message: "User not found" });
 
@@ -83,6 +100,14 @@ router.patch("/:id", authMiddleware, adminOnly, async (req, res) => {
 // =========================
 router.post("/:id/reset-password", authMiddleware, adminOnly, async (req, res) => {
   try {
+    const userToReset = await User.findById(req.params.id);
+    if (!userToReset) return res.status(404).json({ message: "User not found" });
+
+    // Enforce role hierarchy: only superadmin can reset password of admin/superadmin
+    if (['admin', 'superadmin'].includes(userToReset.role) && req.userRole !== 'superadmin') {
+      return res.status(403).json({ message: "Forbidden: Only superadmins can modify admins" });
+    }
+
     const { newPassword } = req.body;
     if (!newPassword || newPassword.length < 4) {
       return res.status(400).json({ message: "Password must be at least 4 characters" });
