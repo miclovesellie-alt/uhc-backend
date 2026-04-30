@@ -101,4 +101,4 @@ const createUserActivityLog = async (userId, action, message, type = 'INFO') => 
     }
 };
 
-module.exports = { createAdminActivity, createUserActivityNotification, createUserActivityLog, setIO };
+module.exports = { createAdminActivity, createUserActivityLog, setIO };
