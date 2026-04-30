@@ -4,14 +4,14 @@ const FeedItem = require("../models/FeedItem");
 const DeletedItem = require("../models/DeletedItem");
 const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
 const multer = require("multer");
-const path = require("path");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("cloudinary").v2;
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/feed/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "feed",
+    allowed_formats: ["jpg", "jpeg", "png", "webp", "gif"],
   },
 });
 const upload = multer({ storage });
@@ -36,7 +36,7 @@ router.post("/", authMiddleware, adminOnly, upload.single("image"), async (req, 
       title,
       content,
       category,
-      image: req.file ? `/uploads/feed/${req.file.filename}` : null
+      image: req.file ? req.file.path : null
     });
 
     // Log Activity
