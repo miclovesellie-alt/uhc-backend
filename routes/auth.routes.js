@@ -44,7 +44,7 @@ router.post("/signup", async (req, res) => {
     await createUserActivityLog(
       user._id, 
       "USER_SIGNUP",
-      `New user joined: "${name}" (${category})`, 
+      `${name} joined (${category})`, 
       'INFO'
     );
 
@@ -106,7 +106,7 @@ router.post("/login", async (req, res) => {
       await createUserActivityLog(
         user._id,
         "USER_LOGIN",
-        `User logged in: "${user.name}" (${user.category || 'User'})`,
+        `${user.name} logged in (${user.category || 'User'})`,
         'INFO'
       );
     }
@@ -116,7 +116,7 @@ router.post("/login", async (req, res) => {
       await createAdminActivity(
         user._id, 
         'ADMIN_LOGIN', 
-        `Administrator logged in`, 
+        `${user.name} logged in (Admin)`, 
         { type: 'User', id: user._id, details: { name: user.name, role: user.role }, notifType: 'SUCCESS' }
       );
     }

@@ -152,7 +152,7 @@ router.post("/login", async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    if (io) io.emit("USER_LOGIN", `User logged in: ${user.name || user.email}`);
+    if (io) io.emit("USER_LOGIN", `${user.name || user.email} logged in`);
     res.json({ message: "Login successful", user });
   } catch (err) {
     res.status(500).json({ message: "Login failed" });
