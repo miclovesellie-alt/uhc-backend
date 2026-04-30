@@ -8,8 +8,10 @@ const feedItemSchema = new mongoose.Schema(
     author: { type: String, default: "Admin" },
     category: { type: String, default: "Health" },
     likes: { type: Number, default: 0 },
+    likedBy: [{ type: String }],
     comments: [
       {
+        userId: String,
         name: String,
         text: String,
         createdAt: { type: Date, default: Date.now }

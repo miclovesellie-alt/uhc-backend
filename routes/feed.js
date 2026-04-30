@@ -91,10 +91,21 @@ router.post("/:id/like", authMiddleware, async (req, res) => {
     const item = await FeedItem.findById(req.params.id);
     if (!item) return res.status(404).json({ message: "Item not found" });
 
-    item.likes += 1;
+    const userIdStr = req.userId.toString();
+    const hasLiked = item.likedBy && item.likedBy.includes(userIdStr);
+
+    if (hasLiked) {
+      item.likedBy = item.likedBy.filter(id => id !== userIdStr);
+      item.likes = Math.max(0, item.likes - 1);
+    } else {
+      if (!item.likedBy) item.likedBy = [];
+      item.likedBy.push(userIdStr);
+      item.likes += 1;
+    }
+
     await item.save();
 
-    res.json({ likes: item.likes });
+    res.json({ likes: item.likes, likedBy: item.likedBy });
   } catch (err) {
     res.status(500).json({ message: "Failed to like item" });
   }
@@ -112,7 +123,16 @@ router.post("/:id/comment", authMiddleware, async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    const userIdStr = req.userId.toString();
+    
+    // Check comment limit (max 3 per user per post)
+    const userCommentsCount = item.comments.filter(c => c.userId === userIdStr).length;
+    if (userCommentsCount >= 3) {
+      return res.status(400).json({ message: "You have reached the maximum limit of 3 comments per post." });
+    }
+
     const newComment = {
+      userId: userIdStr,
       name: user.name,
       text: text,
       createdAt: new Date()
