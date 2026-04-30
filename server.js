@@ -50,8 +50,12 @@ const presenceTracker = require("./utils/presenceTracker");
 // SOCKET CONNECTION
 // =========================
 io.on("connection", (socket) => {
-  // We don't log 'Admin connected' on every connection since users connect too
-  
+  // Send current presence state immediately to the new socket
+  socket.emit("PRESENCE_UPDATE", {
+    onlineIds: presenceTracker.getActiveUserIds(),
+    recentIds: presenceTracker.getRecentlyActiveUserIds(3)
+  });
+
   socket.on("register_presence", (userId) => {
     presenceTracker.addPresence(socket.id, userId);
     emitAdminStats(); // Update dashboard live
