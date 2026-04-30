@@ -190,6 +190,50 @@ router.post("/admin-reset-user-password", async (req, res) => {
   }
 });
 
+// ---------------- MANUAL PASSWORD RESET REQUEST ----------------
+router.post("/manual-reset-request", async (req, res) => {
+  try {
+    const { name, email, username } = req.body;
+
+    if (!name || !email || !username) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Send Email to Admin
+    await sendEmail({
+      to: "boafokyei3@gmail.com",
+      subject: `Manual Password Reset Request from ${name}`,
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #e63946;">Manual Password Reset Request</h2>
+          <p>A user is requesting a manual password reset.</p>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Username/Phone:</strong> ${username}</p>
+          <hr />
+          <p style="font-size: 0.8rem; color: #666;">Please reset their password in the admin panel and contact them securely.</p>
+        </div>
+      `
+    });
+
+    if (user) {
+        await createUserActivityLog(
+            user._id,
+            "PASSWORD_RESET_REQUEST",
+            `Manual password reset requested by ${name} (${email})`,
+            "WARNING"
+        );
+    }
+
+    res.json({ message: "Your request has been sent. An administrator will contact you shortly." });
+  } catch (err) {
+    console.error("Manual reset request error:", err);
+    res.status(500).json({ message: "Failed to send request" });
+  }
+});
+
 // ---------------- FORGOT PASSWORD (FIXED PRODUCTION VERSION) ----------------
 router.post("/forgot-password", async (req, res) => {
   try {
