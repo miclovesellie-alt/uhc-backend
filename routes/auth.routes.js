@@ -8,6 +8,23 @@ const User = require("../models/User");
 const { getSetting } = require("../utils/settings");
 const { createAdminActivity, createUserActivityLog } = require("../utils/adminLogger");
 
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const sendVerificationEmail = async (email, otp) => {
+  await sendEmail({
+    to: email,
+    subject: "[Universal Health] Verify your email address",
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f8fafc;color:#0f172a;border-radius:16px;border:1px solid #e2e8f0">
+        <h2 style="color:#4255ff">📧 Verify your Email</h2>
+        <p>Welcome to Universal Health! Please use the following 6-digit code to verify your email address and activate your account.</p>
+        <div style="font-size:32px;font-weight:bold;letter-spacing:4px;color:#0f172a;margin:24px 0;text-align:center;background:#fff;padding:16px;border-radius:8px;border:1px dashed #cbd5e1">${otp}</div>
+        <p style="color:#64748b;font-size:0.85rem">This code expires in <strong>15 minutes</strong>.</p>
+      </div>
+    `
+  });
+};
+
 // ---------------- SIGNUP ----------------
 router.post("/signup", async (req, res) => {
   try {
@@ -29,6 +46,8 @@ router.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const otp = generateOTP();
+
     const user = new User({
       name,
       email,
@@ -36,15 +55,48 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
       category,
       country,
+      isVerified: false,
+      otp: otp,
+      otpExpires: new Date(Date.now() + 15 * 60 * 1000), // 15 mins
     });
 
+    await user.save();
+    
+    // Send OTP Email
+    await sendVerificationEmail(user.email, otp);
+
+    res.json({ message: "Account created! Please check your email for the verification code.", email: user.email, requiresVerification: true });
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ---------------- VERIFY EMAIL ----------------
+router.post("/verify-email", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.isVerified) return res.status(400).json({ message: "Email is already verified" });
+
+    if (user.otp !== otp || user.otpExpires < new Date()) {
+      return res.status(400).json({ message: "Invalid or expired verification code" });
+    }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpires = undefined;
     await user.save();
 
     // Log Activity for Admins
     await createUserActivityLog(
       user._id, 
       "USER_SIGNUP",
-      `New user joined: "${name}" (${category})`, 
+      `New user verified: "${user.name}" (${user.category})`, 
       'INFO'
     );
 
@@ -52,9 +104,9 @@ router.post("/signup", async (req, res) => {
       expiresIn: "1d",
     });
 
-    res.json({ token, user });
+    res.json({ message: "Email verified successfully", token, user: { ...user.toObject(), password: undefined } });
   } catch (err) {
-    console.error("Signup error:", err);
+    console.error("Verify email error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -86,6 +138,22 @@ router.post("/login", async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+
+    // Check if verified
+    if (!user.isVerified) {
+      // Resend OTP if not verified
+      const otp = generateOTP();
+      user.otp = otp;
+      user.otpExpires = new Date(Date.now() + 15 * 60 * 1000);
+      await user.save();
+      await sendVerificationEmail(user.email, otp);
+      
+      return res.status(403).json({ 
+        message: "Please verify your email to log in. A new code has been sent.", 
+        requiresVerification: true,
+        email: user.email
+      });
+    }
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: "1d",
@@ -207,32 +275,33 @@ router.post("/forgot-password", async (req, res) => {
       });
     }
 
-    // Generate token
-    const token = crypto.randomBytes(32).toString("hex");
+    // Generate 6-digit OTP
+    const otp = generateOTP();
 
     // 🔥 PRODUCTION FIX: use updateOne instead of save()
     await User.updateOne(
       { email },
       {
-        resetPasswordToken: token,
-        resetPasswordExpires: Date.now() + 3600000,
+        otp: otp,
+        otpExpires: Date.now() + 15 * 60 * 1000, // 15 mins
       }
     );
 
-    const resetUrl = `${process.env.HOST || 'http://localhost:3000'}/reset-password/${token}`;
-
     await sendEmail({
       to: email,
-      subject: "Password Reset Request",
+      subject: "[Universal Health] Password Reset Code",
       html: `
-        <p>You requested a password reset.</p>
-        <p><a href="${resetUrl}">Click here to reset your password</a></p>
-        <p>This link expires in 1 hour.</p>
+        <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f8fafc;color:#0f172a;border-radius:16px;border:1px solid #e2e8f0">
+          <h2 style="color:#4255ff">🔐 Password Reset Request</h2>
+          <p>We received a request to reset your password. Use the following 6-digit code to proceed.</p>
+          <div style="font-size:32px;font-weight:bold;letter-spacing:4px;color:#0f172a;margin:24px 0;text-align:center;background:#fff;padding:16px;border-radius:8px;border:1px dashed #cbd5e1">${otp}</div>
+          <p style="color:#64748b;font-size:0.85rem">This code expires in <strong>15 minutes</strong>. If you did not request this, ignore this email.</p>
+        </div>
       `
     });
 
     res.json({
-      message: "If this email exists, a reset link has been sent",
+      message: "If this email exists, a reset code has been sent",
     });
   } catch (err) {
     console.error("Forgot password error:", err);
@@ -243,19 +312,18 @@ router.post("/forgot-password", async (req, res) => {
 // ---------------- RESET PASSWORD ----------------
 router.post("/reset-password", async (req, res) => {
   try {
-    console.log("REQ BODY:", req.body); // 🔥 DEBUG LINE
+    const { email, otp, newPassword } = req.body || {};
 
-    const { token, newPassword } = req.body || {};
-
-    if (!token || !newPassword) {
+    if (!email || !otp || !newPassword) {
       return res.status(400).json({
-        message: "Token and new password required",
+        message: "Email, OTP, and new password required",
       });
     }
 
     const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
+      email: email,
+      otp: otp,
+      otpExpires: { $gt: Date.now() },
     });
 
     if (!user) {
@@ -267,8 +335,8 @@ router.post("/reset-password", async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     user.password = hashedPassword;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.otp = undefined;
+    user.otpExpires = undefined;
 
     await user.save();
 

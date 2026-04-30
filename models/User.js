@@ -12,6 +12,11 @@ const userSchema = new mongoose.Schema(
     role:   { type: String, default: "user", enum: ["user", "admin", "superadmin"] },
     status: { type: String, default: "active", enum: ["active", "banned"] },
 
+    // ===== Verification & OTP Fields =====
+    isVerified: { type: Boolean, default: false },
+    otp: { type: String },
+    otpExpires: { type: Date },
+
     // ===== Password Reset Fields =====
     resetPasswordToken:   { type: String },
     resetPasswordExpires: { type: Date },
