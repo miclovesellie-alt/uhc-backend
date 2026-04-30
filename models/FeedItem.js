@@ -14,7 +14,13 @@ const feedItemSchema = new mongoose.Schema(
         userId: String,
         name: String,
         text: String,
-        createdAt: { type: Date, default: Date.now }
+        createdAt: { type: Date, default: Date.now },
+        replies: [{
+          userId: String,
+          name: String,
+          text: String,
+          createdAt: { type: Date, default: Date.now }
+        }]
       }
     ]
   },

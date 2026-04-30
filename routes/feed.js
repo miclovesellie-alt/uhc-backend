@@ -3,6 +3,7 @@ const router = express.Router();
 const FeedItem = require("../models/FeedItem");
 const DeletedItem = require("../models/DeletedItem");
 const User = require("../models/User");
+const AdminNotification = require("../models/AdminNotification");
 const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -101,6 +102,17 @@ router.post("/:id/like", authMiddleware, async (req, res) => {
       if (!item.likedBy) item.likedBy = [];
       item.likedBy.push(userIdStr);
       item.likes += 1;
+      
+      // Notify admins
+      const user = await User.findById(req.userId);
+      if (user) {
+        await AdminNotification.create({
+          sender: user._id,
+          recipient: null,
+          message: `${user.name} liked the announcement "${item.title}"`,
+          type: 'INFO'
+        });
+      }
     }
 
     await item.save();
@@ -111,10 +123,10 @@ router.post("/:id/like", authMiddleware, async (req, res) => {
   }
 });
 
-// @desc    Add a comment to a feed item
+// @desc    Add a comment or reply to a feed item
 router.post("/:id/comment", authMiddleware, async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, commentId } = req.body;
     if (!text) return res.status(400).json({ message: "Comment text is required" });
 
     const item = await FeedItem.findById(req.params.id);
@@ -125,8 +137,17 @@ router.post("/:id/comment", authMiddleware, async (req, res) => {
 
     const userIdStr = req.userId.toString();
     
-    // Check comment limit (max 3 per user per post)
-    const userCommentsCount = item.comments.filter(c => c.userId === userIdStr).length;
+    // Check comment limit (max 3 per user per post, including replies)
+    let userCommentsCount = 0;
+    item.comments.forEach(c => {
+      if (c.userId === userIdStr) userCommentsCount++;
+      if (c.replies) {
+        c.replies.forEach(r => {
+          if (r.userId === userIdStr) userCommentsCount++;
+        });
+      }
+    });
+
     if (userCommentsCount >= 3) {
       return res.status(400).json({ message: "You have reached the maximum limit of 3 comments per post." });
     }
@@ -138,11 +159,33 @@ router.post("/:id/comment", authMiddleware, async (req, res) => {
       createdAt: new Date()
     };
 
-    item.comments.push(newComment);
+    if (commentId) {
+      const parentComment = item.comments.id(commentId);
+      if (!parentComment) return res.status(404).json({ message: "Parent comment not found" });
+      parentComment.replies.push(newComment);
+      
+      await AdminNotification.create({
+        sender: user._id,
+        recipient: null,
+        message: `${user.name} replied to a comment on "${item.title}"`,
+        type: 'INFO'
+      });
+    } else {
+      item.comments.push(newComment);
+      
+      await AdminNotification.create({
+        sender: user._id,
+        recipient: null,
+        message: `${user.name} commented on "${item.title}"`,
+        type: 'INFO'
+      });
+    }
+
     await item.save();
 
     res.json(item.comments);
   } catch (err) {
+    console.error("Comment error:", err);
     res.status(500).json({ message: "Failed to add comment" });
   }
 });
