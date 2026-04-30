@@ -69,7 +69,7 @@ exports.updateQuestion = async (req, res) => {
   try {
     const updated = await Question.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      { ...req.body, isReported: false, reportReason: "" },
       { new: true }
     );
 

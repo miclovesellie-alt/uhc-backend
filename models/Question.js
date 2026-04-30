@@ -32,6 +32,16 @@ const questionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+
+    isReported: {
+      type: Boolean,
+      default: false,
+    },
+
+    reportReason: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );

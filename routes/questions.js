@@ -58,23 +58,19 @@ router.post("/report", authMiddleware, async (req, res) => {
       return res.status(400).json({ message: "Question ID is required" });
     }
 
-    const notification = new AdminNotification({
-      sender: req.userId,
-      message: `🚩 Question Reported: "${questionText || questionId}" \nReason: ${reason || "No reason provided"}`,
-      type: "WARNING"
+    await Question.findByIdAndUpdate(questionId, {
+      isReported: true,
+      reportReason: reason || "No reason provided"
     });
 
-    await notification.save();
-
-    // If socket.io is available, broadcast live notification
-    if (io) {
-      io.emit("new_admin_notification", {
-        _id: notification._id,
-        message: notification.message,
-        type: notification.type,
-        createdAt: notification.createdAt
-      });
-    }
+    // Use the standardized adminLogger
+    const { createUserActivityLog } = require("../utils/adminLogger");
+    await createUserActivityLog(
+      req.userId,
+      "QUESTION_REPORTED",
+      `Question Reported: "${questionText || questionId}" \nReason: ${reason || "No reason provided"}`,
+      "WARNING"
+    );
 
     res.json({ message: "Report submitted successfully. Thank you!" });
   } catch (error) {
