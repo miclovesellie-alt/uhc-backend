@@ -53,6 +53,37 @@ router.post("/", authMiddleware, adminOnly, upload.single("image"), async (req, 
   }
 });
 
+// @desc    Edit a feed item (Admin)
+router.put("/:id", authMiddleware, adminOnly, upload.single("image"), async (req, res) => {
+  try {
+    const { title, content, category } = req.body;
+    const item = await FeedItem.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+
+    item.title = title || item.title;
+    item.content = content || item.content;
+    item.category = category || item.category;
+
+    if (req.file) {
+      item.image = req.file.path;
+    }
+
+    await item.save();
+
+    // Log Activity
+    await createAdminActivity(
+      req.userId, 
+      'EDIT_FEED_POST', 
+      `updated announcement: "${item.title}"`, 
+      { type: 'Feed', id: item._id, details: { title: item.title }, notifType: 'INFO' }
+    );
+
+    res.json(item);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update item" });
+  }
+});
+
 // @desc    Delete (move to recycle bin)
 router.delete("/:id", authMiddleware, adminOnly, async (req, res) => {
   try {
