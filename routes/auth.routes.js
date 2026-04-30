@@ -234,54 +234,11 @@ router.post("/manual-reset-request", async (req, res) => {
   }
 });
 
-// ---------------- FORGOT PASSWORD (FIXED PRODUCTION VERSION) ----------------
+// ---------------- FORGOT PASSWORD (DEPRECATED) ----------------
 router.post("/forgot-password", async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: "Email required" });
-    }
-
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.json({
-        message: "If this email exists, a reset link has been sent",
-      });
-    }
-
-    // Generate token
-    const token = crypto.randomBytes(32).toString("hex");
-
-    // 🔥 PRODUCTION FIX: use updateOne instead of save()
-    await User.updateOne(
-      { email },
-      {
-        resetPasswordToken: token,
-        resetPasswordExpires: Date.now() + 3600000,
-      }
-    );
-
-    const resetUrl = `${process.env.HOST || 'http://localhost:3000'}/reset-password/${token}`;
-
-    await sendEmail({
-      to: email,
-      subject: "Password Reset Request",
-      html: `
-        <p>You requested a password reset.</p>
-        <p><a href="${resetUrl}">Click here to reset your password</a></p>
-        <p>This link expires in 1 hour.</p>
-      `
-    });
-
-    res.json({
-      message: "If this email exists, a reset link has been sent",
-    });
-  } catch (err) {
-    console.error("Forgot password error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
+  return res.status(400).json({ 
+    message: "This feature has been deprecated. Please use the manual reset form." 
+  });
 });
 
 // ---------------- RESET PASSWORD ----------------
