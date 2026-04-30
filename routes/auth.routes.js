@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const { sendEmail } = require("../utils/mail");
 const User = require("../models/User");
 const { getSetting } = require("../utils/settings");
-const { createAdminActivity, createUserActivityNotification, createUserActivityLog } = require("../utils/adminLogger");
+const { createAdminActivity, createUserActivityLog } = require("../utils/adminLogger");
 
 // ---------------- SIGNUP ----------------
 router.post("/signup", async (req, res) => {

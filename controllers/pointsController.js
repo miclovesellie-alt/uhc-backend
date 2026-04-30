@@ -1,5 +1,5 @@
 const User = require("../models/User");
-const { createUserActivityNotification } = require("../utils/adminLogger");
+const { createUserActivityLog } = require("../utils/adminLogger");
 
 // @desc    Add points to a user
 // @route   POST /api/points/add
@@ -19,7 +19,7 @@ exports.addPoints = async (req, res) => {
     await user.save();
 
     // Notify Admins
-    await createUserActivityNotification(
+    await createUserActivityLog(
       user._id,
       `User earned ${amount} pts: "${user.name}" (${reason})`,
       'SUCCESS'
