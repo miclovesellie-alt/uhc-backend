@@ -54,13 +54,24 @@ io.on("connection", (socket) => {
   socket.on("register_presence", (userId) => {
     presenceTracker.addPresence(socket.id, userId);
     emitAdminStats(); // Update dashboard live
+    emitPresenceUpdate();
   });
 
   socket.on("disconnect", () => {
     presenceTracker.removePresence(socket.id);
     emitAdminStats(); // Update dashboard live
+    emitPresenceUpdate();
   });
 });
+
+function emitPresenceUpdate() {
+  if (io) {
+    io.emit("PRESENCE_UPDATE", {
+      onlineIds: presenceTracker.getActiveUserIds(),
+      recentIds: presenceTracker.getRecentlyActiveUserIds(3)
+    });
+  }
+}
 
 // =========================
 // INJECT SOCKET INTO ROUTES
