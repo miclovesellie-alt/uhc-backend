@@ -6,16 +6,11 @@ const authMiddleware = require("../middleware/auth"); // your JWT middleware
 // GET /api/user - return the logged-in user's info
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select("-password"); // exclude password
+    // Exclude password and version key
+    const user = await User.findById(req.userId).select("-password -__v");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json({
-      name: user.name,
-      email: user.email,
-      points: user.points,
-      gender: user.gender,
-      profileImage: user.profileImage || null, // optional default
-    });
+    res.json(user);
   } catch (err) {
     console.error("Error fetching user:", err.message);
     res.status(500).json({ message: "Server error fetching user data" });

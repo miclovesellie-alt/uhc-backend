@@ -32,6 +32,20 @@ router.get('/notifications', authMiddleware, adminOnly, async (req, res) => {
     }
 });
 
+// @desc    Mark all notifications as read
+// @route   PATCH /api/admin/notifications/read-all
+router.patch('/notifications/read-all', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        await AdminNotification.updateMany(
+            { readBy: { $ne: req.userId } },
+            { $push: { readBy: req.userId } }
+        );
+        res.json({ message: 'All marked as read' });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to mark all as read' });
+    }
+});
+
 // @desc    Mark notification as read
 // @route   PATCH /api/admin/notifications/:id/read
 router.patch('/notifications/:id/read', authMiddleware, adminOnly, async (req, res) => {
