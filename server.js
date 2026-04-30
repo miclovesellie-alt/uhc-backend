@@ -22,6 +22,7 @@ const recycleBinRoutes = require("./routes/recycleBin");
 const feedRoutes = require("./routes/feed");
 const pointsRoutes = require("./routes/points");
 const adminActivityRoutes = require("./routes/adminActivity");
+const userNotificationsRoutes = require("./routes/userNotifications");
 
 // =========================
 // IMPORT MODELS
@@ -77,10 +78,12 @@ function emitPresenceUpdate() {
 // INJECT SOCKET INTO ROUTES
 // =========================
 const { setIO: setLoggerIO } = require("./utils/adminLogger");
+const { setIO: setUserNotifierIO } = require("./utils/userNotifier");
 userAdmin.setIO(io);
 questionsRoute.setIO(io);
 contactRoutes.setIO(io);
 setLoggerIO(io);
+setUserNotifierIO(io);
 
 // =========================
 // MIDDLEWARE
@@ -119,6 +122,7 @@ safeUse("/api/admin/recycle-bin", recycleBinRoutes);
 safeUse("/api/admin/feed", feedRoutes);
 safeUse("/api/points", pointsRoutes);
 safeUse("/api/admin/activity", adminActivityRoutes);
+safeUse("/api/user/notifications", userNotificationsRoutes);
 
 // =========================
 // COURSES ROUTES

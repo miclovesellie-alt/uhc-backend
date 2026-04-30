@@ -19,6 +19,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage });
 
 const { createAdminActivity } = require("../utils/adminLogger");
+const { broadcastToAllUsers } = require("../utils/userNotifier");
 
 // @desc    Get all feed items
 router.get("/", async (req, res) => {
@@ -48,6 +49,9 @@ router.post("/", authMiddleware, adminOnly, upload.single("image"), async (req, 
       `published a new announcement: "${title}"`, 
       { type: 'Feed', id: newItem._id, details: { title }, notifType: 'SUCCESS' }
     );
+
+    // Notify all users about the new announcement
+    await broadcastToAllUsers(`New Admin Announcement: "${title}"`, 'POST', '/feed');
 
     res.status(201).json(newItem);
   } catch (err) {
@@ -106,12 +110,12 @@ router.post("/:id/like", authMiddleware, async (req, res) => {
       // Notify admins
       const user = await User.findById(req.userId);
       if (user) {
-        await AdminNotification.create({
-          sender: user._id,
-          recipient: null,
-          message: `${user.name} liked the announcement "${item.title}"`,
-          type: 'INFO'
-        });
+        await createAdminActivity(
+          null, // System generated or anonymous-like from the user's perspective
+          'POST_LIKED',
+          `${user.name} liked the announcement "${item.title}"`,
+          { type: 'Feed', id: item._id, notifType: 'INFO' }
+        );
       }
     }
 
@@ -164,21 +168,21 @@ router.post("/:id/comment", authMiddleware, async (req, res) => {
       if (!parentComment) return res.status(404).json({ message: "Parent comment not found" });
       parentComment.replies.push(newComment);
       
-      await AdminNotification.create({
-        sender: user._id,
-        recipient: null,
-        message: `${user.name} replied to a comment on "${item.title}"`,
-        type: 'INFO'
-      });
+      await createAdminActivity(
+        null, 
+        'NEW_COMMENT_REPLY',
+        `${user.name} replied to a comment on "${item.title}"`,
+        { type: 'Feed', id: item._id, notifType: 'INFO' }
+      );
     } else {
       item.comments.push(newComment);
       
-      await AdminNotification.create({
-        sender: user._id,
-        recipient: null,
-        message: `${user.name} commented on "${item.title}"`,
-        type: 'INFO'
-      });
+      await createAdminActivity(
+        null, 
+        'NEW_COMMENT',
+        `${user.name} commented on "${item.title}"`,
+        { type: 'Feed', id: item._id, notifType: 'INFO' }
+      );
     }
 
     await item.save();
