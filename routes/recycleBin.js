@@ -43,7 +43,28 @@ router.post("/restore/:id", authMiddleware, adminOnly, async (req, res) => {
 
     res.json({ message: "Item restored successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Failed to restore item" });
+    console.error("Restore error:", err);
+    res.status(500).json({ message: "Failed to restore item", error: err.message });
+  }
+});
+
+// @desc    Empty recycle bin
+router.delete("/empty", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await DeletedItem.deleteMany({});
+    
+    // Log Activity
+    await createAdminActivity(
+      req.userId, 
+      'EMPTY_RECYCLE_BIN', 
+      `emptied the recycle bin`, 
+      { type: 'System', id: req.userId, details: {}, notifType: 'DANGER' }
+    );
+
+    res.json({ message: "Recycle bin emptied" });
+  } catch (err) {
+    console.error("Empty bin error:", err);
+    res.status(500).json({ message: "Failed to empty recycle bin" });
   }
 });
 
@@ -65,6 +86,7 @@ router.delete("/:id", authMiddleware, adminOnly, async (req, res) => {
 
     res.json({ message: "Item permanently deleted" });
   } catch (err) {
+    console.error("Permanent delete error:", err);
     res.status(500).json({ message: "Failed to delete item" });
   }
 });
