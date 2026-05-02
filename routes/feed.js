@@ -19,7 +19,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage });
 
 const { createAdminActivity } = require("../utils/adminLogger");
-const { broadcastToAllUsers } = require("../utils/userNotifier");
+const { broadcastToAllUsers, notifyUser } = require("../utils/userNotifier");
 
 // @desc    Get all feed items
 router.get("/", async (req, res) => {
@@ -107,15 +107,20 @@ router.post("/:id/like", authMiddleware, async (req, res) => {
       item.likedBy.push(userIdStr);
       item.likes += 1;
       
-      // Notify admins
+      // Notify admins & award point
       const user = await User.findById(req.userId);
       if (user) {
+        user.points = (user.points || 0) + 1;
+        await user.save();
+        
         await createAdminActivity(
           null, // System generated or anonymous-like from the user's perspective
           'POST_LIKED',
           `${user.name} liked the announcement "${item.title}"`,
           { type: 'Feed', id: item._id, notifType: 'INFO' }
         );
+        
+        await notifyUser(user._id, "You earned 1 point for liking a post!", "SUCCESS");
       }
     }
 
@@ -184,6 +189,11 @@ router.post("/:id/comment", authMiddleware, async (req, res) => {
         { type: 'Feed', id: item._id, notifType: 'INFO' }
       );
     }
+    
+    // Award point for commenting
+    user.points = (user.points || 0) + 1;
+    await user.save();
+    await notifyUser(user._id, "You earned 1 point for commenting!", "SUCCESS");
 
     await item.save();
 

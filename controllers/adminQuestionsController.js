@@ -1,6 +1,7 @@
 const Question = require("../models/Question");
 const DeletedItem = require("../models/DeletedItem");
 const { createAdminActivity } = require("../utils/adminLogger");
+const { broadcastToAllUsers } = require("../utils/userNotifier");
 
 /* =========================================
    GET QUESTIONS (FILTER + SEARCH + PAGINATION)
@@ -54,6 +55,9 @@ exports.createQuestion = async (req, res) => {
       `added a new question to ${saved.course}`, 
       { type: 'Question', id: saved._id, details: { question: saved.question, course: saved.course }, notifType: 'SUCCESS' }
     );
+    
+    // Notify all users
+    await broadcastToAllUsers(`New study question added for course: ${saved.course}`, 'INFO', '/quiz');
     
     res.status(201).json(saved);
   } catch (err) {

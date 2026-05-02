@@ -7,6 +7,7 @@ const path = require("path");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const { createAdminActivity } = require("../utils/adminLogger");
+const { broadcastToAllUsers } = require("../utils/userNotifier");
 
 // Configure Cloudinary storage (auto-reads CLOUDINARY_URL from .env)
 const storage = new CloudinaryStorage({
@@ -62,6 +63,9 @@ router.post("/books", authMiddleware, adminOnly, upload.single("file"), async (r
       `uploaded a new document: "${title}"`, 
       { type: 'Book', id: newBook._id, details: { title, course }, notifType: 'SUCCESS' }
     );
+    
+    // Notify users
+    await broadcastToAllUsers(`New library document added: "${title}"`, 'INFO', '/library');
     
     res.status(201).json(newBook);
   } catch (err) {

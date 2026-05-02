@@ -34,12 +34,17 @@ router.post("/", authMiddleware, adminOnly, async (req, res) => {
 
     // Log Activity
     const { createAdminActivity } = require("../utils/adminLogger");
+    const { broadcastToAllUsers } = require("../utils/userNotifier");
+    
     await createAdminActivity(
       req.userId, 
       'BULK_UPLOAD_QUESTIONS', 
       `bulk uploaded ${createdQuestions.length} questions`, 
       { type: 'Question', details: { count: createdQuestions.length }, notifType: 'SUCCESS' }
     );
+
+    // Notify users
+    await broadcastToAllUsers(`New study materials: ${createdQuestions.length} questions were just added!`, 'INFO', '/quiz');
 
     res.status(201).json({
       message: `${createdQuestions.length} questions uploaded successfully`,
