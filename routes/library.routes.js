@@ -1,19 +1,19 @@
 const express = require("express");
-const router = express.Router();
+const router = require("express").Router();
 const Book = require("../models/Book");
 const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
 const multer = require("multer");
-const path = require("path");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const { createAdminActivity } = require("../utils/adminLogger");
 
-// Configure Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/library/");
-  },
-  filename: (req, file, cb) => {
-    // We can rename the file here if needed, but we'll use the title from the body later
-    cb(null, Date.now() + path.extname(file.originalname));
+// Configure Cloudinary storage (auto-reads CLOUDINARY_URL from .env)
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "uhc-library",
+    resource_type: "raw", // Required for PDFs, DOCX, PPT, etc.
+    allowed_formats: ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx"],
   },
 });
 
@@ -48,7 +48,7 @@ router.post("/books", authMiddleware, adminOnly, upload.single("file"), async (r
       author,
       course,
       description,
-      fileUrl: `/uploads/library/${req.file.filename}`,
+      fileUrl: req.file.path, // Full Cloudinary URL (permanent, survives redeploys)
       isDownloadable: isDownloadable === "true" || isDownloadable === true,
       uploadedBy: req.userId
     });
