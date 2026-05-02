@@ -14,7 +14,7 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => ({
     folder: "uhc-library",
-    resource_type: "raw", // Required for PDFs, DOCX, PPT, etc.
+    resource_type: "auto", // Automatically detect PDF, Image, etc.
     public_id: `${Date.now()}${path.extname(file.originalname)}`, // Preserve .pdf, .docx etc. in URL
     allowed_formats: ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx"],
   }),
