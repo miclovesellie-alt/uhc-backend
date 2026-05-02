@@ -3,6 +3,7 @@ const router = require("express").Router();
 const Book = require("../models/Book");
 const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
 const multer = require("multer");
+const path = require("path");
 const cloudinary = require("cloudinary").v2;
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const { createAdminActivity } = require("../utils/adminLogger");
@@ -10,11 +11,12 @@ const { createAdminActivity } = require("../utils/adminLogger");
 // Configure Cloudinary storage (auto-reads CLOUDINARY_URL from .env)
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
+  params: async (req, file) => ({
     folder: "uhc-library",
     resource_type: "raw", // Required for PDFs, DOCX, PPT, etc.
+    public_id: `${Date.now()}${path.extname(file.originalname)}`, // Preserve .pdf, .docx etc. in URL
     allowed_formats: ["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx"],
-  },
+  }),
 });
 
 const upload = multer({ storage: storage });
