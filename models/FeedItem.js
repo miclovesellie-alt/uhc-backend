@@ -25,7 +25,7 @@ const feedItemSchema = new mongoose.Schema(
           createdAt: { type: Date, default: Date.now }
         }]
       }
-    ]
+    ]  ,
     flagCount: { type: Number, default: 0 },
     flaggedBy: [{ type: String }]
   },
