@@ -61,20 +61,43 @@ router.get("/proxy-pdf", async (req, res) => {
 
   try {
     const decoded = decodeURIComponent(url);
+
+    // Detect file type from the URL, not Cloudinary's headers (which may be octet-stream)
+    const urlLower = decoded.toLowerCase().split("?")[0];
+    let contentType = "application/pdf"; // default
+    if (urlLower.includes(".pptx") || urlLower.includes("pptx")) {
+      contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    } else if (urlLower.includes(".ppt")) {
+      contentType = "application/vnd.ms-powerpoint";
+    } else if (urlLower.includes(".docx")) {
+      contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    } else if (urlLower.includes(".doc")) {
+      contentType = "application/msword";
+    }
+
     const protocol = decoded.startsWith("https") ? https : http;
     const proxyReq = protocol.get(decoded, (proxyRes) => {
-      res.setHeader("Content-Type", proxyRes.headers["content-type"] || "application/pdf");
+      // Force correct Content-Type — never trust Cloudinary's octet-stream
+      res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Disposition", "inline");
       res.setHeader("Access-Control-Allow-Origin", "*");
-      // Stream the response
+      res.setHeader("X-Frame-Options", "ALLOWALL");
+      if (proxyRes.headers["content-length"]) {
+        res.setHeader("Content-Length", proxyRes.headers["content-length"]);
+      }
+      res.status(proxyRes.statusCode || 200);
       proxyRes.pipe(res);
     });
+    proxyReq.setTimeout(30000, () => {
+      proxyReq.destroy();
+      if (!res.headersSent) res.status(504).json({ error: "Upstream timeout" });
+    });
     proxyReq.on("error", (err) => {
-      console.error("Proxy error:", err);
-      res.status(500).json({ error: "Failed to fetch document" });
+      console.error("Proxy error:", err.message);
+      if (!res.headersSent) res.status(502).json({ error: "Failed to fetch document" });
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    if (!res.headersSent) res.status(500).json({ error: err.message });
   }
 });
 
