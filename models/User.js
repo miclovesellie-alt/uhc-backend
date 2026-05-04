@@ -10,7 +10,11 @@ const userSchema = new mongoose.Schema(
     country: { type: String, required: true },
     points: { type: Number, default: 0 },
     role:   { type: String, default: "user", enum: ["user", "admin", "superadmin"] },
-    status: { type: String, default: "active", enum: ["active", "banned"] },
+    status: { type: String, default: "active", enum: ["active", "banned", "suspended"] },
+    suspendedUntil: { type: Date, default: null },
+    suspendReason:  { type: String, default: "" },
+    streak:         { type: Number, default: 0 },
+    lastQuizDate:   { type: Date, default: null },
     lastLoginPointDate: { type: Date },
 
     // ===== Password Reset Fields =====

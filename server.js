@@ -23,6 +23,7 @@ const feedRoutes = require("./routes/feed");
 const pointsRoutes = require("./routes/points");
 const adminActivityRoutes = require("./routes/adminActivity");
 const userNotificationsRoutes = require("./routes/userNotifications");
+const socialRoutes = require("./routes/social.routes");
 
 // =========================
 // IMPORT MODELS
@@ -213,6 +214,7 @@ app.get("/api/admin/stats", async (req, res) => {
 // =========================
 // TEST ROUTE
 // =========================
+app.use("/api/social", socialRoutes);
 app.get("/", (req, res) => res.send("Universal Health API running"));
 
 // =========================
