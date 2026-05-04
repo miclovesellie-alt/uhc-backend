@@ -26,6 +26,8 @@ const feedItemSchema = new mongoose.Schema(
         }]
       }
     ]
+    flagCount: { type: Number, default: 0 },
+    flaggedBy: [{ type: String }]
   },
   { timestamps: true }
 );

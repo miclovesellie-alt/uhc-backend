@@ -233,4 +233,24 @@ router.delete("/:id", authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// @desc    Flag a feed post (users)
+router.post("/:id/flag", authMiddleware, async (req, res) => {
+  try {
+    const item = await FeedItem.findById(req.params.id);
+    if (!item) return res.status(404).json({ message: "Item not found" });
+    item.flagCount = (item.flagCount || 0) + 1;
+    item.flaggedBy = item.flaggedBy || [];
+    if (!item.flaggedBy.includes(req.userId)) {
+      item.flaggedBy.push(req.userId);
+      await item.save();
+      if (item.flagCount >= 3) {
+        await createAdminActivity(null, 'POST_FLAGGED',
+          `Post "${item.title}" has been flagged ${item.flagCount} times`,
+          { type: 'Feed', id: item._id, notifType: 'DANGER' });
+      }
+    }
+    res.json({ flagCount: item.flagCount });
+  } catch (err) { res.status(500).json({ message: "Failed to flag item" }); }
+});
+
 module.exports = router;

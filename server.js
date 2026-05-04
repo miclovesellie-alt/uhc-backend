@@ -5,6 +5,12 @@ const path = require("path");
 require("dotenv").config();
 const http = require("http");
 const { Server } = require("socket.io");
+const rateLimit = require("express-rate-limit");
+
+// Rate limiters
+const globalLimiter = rateLimit({ windowMs: 15*60*1000, max: 300, standardHeaders: true, legacyHeaders: false });
+const authLimiter  = rateLimit({ windowMs: 15*60*1000, max: 20,  message: { message: "Too many login attempts. Please try again in 15 minutes." }, standardHeaders: true, legacyHeaders: false });
+
 
 // =========================
 // IMPORT ROUTES
@@ -98,6 +104,11 @@ app.use(cors({ origin: "*" })); // Allows any frontend to call API routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Rate limiting — apply globally, stricter on auth
+app.use("/api", globalLimiter);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/signup", authLimiter);
+
 
 // =========================
 // SAFE APP.USE HELPER
