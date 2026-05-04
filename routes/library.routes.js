@@ -27,7 +27,7 @@ const upload = multer({ storage: storage });
 router.get("/books", async (req, res) => {
   try {
     const { course } = req.query;
-    let query = {};
+    let query = { status: { $in: ["approved", null] } }; // null for legacy books without status
     if (course) query.course = course;
     const books = await Book.find(query).sort({ createdAt: -1 });
     res.json(books);
