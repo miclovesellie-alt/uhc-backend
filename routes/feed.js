@@ -21,10 +21,10 @@ const upload = multer({ storage });
 const { createAdminActivity } = require("../utils/adminLogger");
 const { broadcastToAllUsers, notifyUser } = require("../utils/userNotifier");
 
-// @desc    Get all feed items
+// @desc    Get all feed items (approved only for public feed)
 router.get("/", async (req, res) => {
   try {
-    const items = await FeedItem.find().sort({ createdAt: -1 });
+    const items = await FeedItem.find({ status: { $in: ["approved", null] } }).sort({ createdAt: -1 });
     res.json(items);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch feed" });
