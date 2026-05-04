@@ -29,7 +29,26 @@ const uploadBook = multer({
     if (allowed.includes(file.mimetype)) cb(null, true);
     else cb(new Error("Only PDF and PPT/PPTX files are allowed"), false);
   },
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
+
+// ── Cloudinary storage for feed post images ──
+const imageStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => ({
+    folder: "uhc-feed-pending",
+    resource_type: "image",
+    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+    transformation: [{ width: 1200, crop: "limit", quality: "auto" }],
+  }),
+});
+const uploadImage = multer({
+  storage: imageStorage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Only image files are allowed"), false);
+  },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
 // ════════════════════════════════════════════
@@ -87,9 +106,9 @@ router.post("/book", authMiddleware, uploadBook.single("file"), async (req, res)
 
 // ════════════════════════════════════════════
 //  USER: Submit a feed post (goes to pending)
-//  POST /api/submissions/feed
+//  POST /api/submissions/feed  (multipart/form-data)
 // ════════════════════════════════════════════
-router.post("/feed", authMiddleware, async (req, res) => {
+router.post("/feed", authMiddleware, uploadImage.single("image"), async (req, res) => {
   try {
     const { title, content, category } = req.body;
     if (!title || !content) return res.status(400).json({ error: "Title and content are required" });
@@ -97,6 +116,7 @@ router.post("/feed", authMiddleware, async (req, res) => {
     const post = await FeedItem.create({
       title, content, category: category || "Health",
       author: user?.name || "Student",
+      image: req.file ? req.file.path : undefined, // Cloudinary URL if image attached
       submittedBy: req.userId,
       status: "pending",
     });
