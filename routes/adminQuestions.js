@@ -14,6 +14,22 @@ const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
 /* GET QUESTIONS */
 router.get("/", getQuestions);
 
+/* GET QUESTION COUNTS PER COURSE (aggregation — real DB counts) */
+router.get("/counts-by-course", async (req, res) => {
+  try {
+    const Question = require("../models/Question");
+    const counts = await Question.aggregate([
+      { $group: { _id: "$course", count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+    // Also return the grand total
+    const total = await Question.countDocuments();
+    res.json({ counts, total });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* CREATE QUESTION */
 router.post("/", authMiddleware, adminOnly, createQuestion);
 
