@@ -38,6 +38,7 @@ const submissionsRoutes = require("./routes/submissions");
 const User = require("./models/User");
 const Question = require("./models/Question");
 const Course = require("./models/Course");
+const LibraryItem = require("./models/LibraryItem");
 
 // =========================
 // APP INIT
@@ -250,7 +251,8 @@ server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 async function fetchAdminStats() {
   const totalUsers = await User.countDocuments();
   const totalQuestions = await Question.countDocuments();
-  
+  const totalBooks = await LibraryItem.countDocuments();
+
   // Use Course model if questions might be empty
   let totalCourses = await Course.countDocuments();
   if (totalCourses === 0) {
@@ -264,9 +266,12 @@ async function fetchAdminStats() {
 
   const liveUsers = presenceTracker.getActiveCount();
 
-  console.log(`📊 Stats updated: ${totalUsers} Users, ${totalQuestions} Questions, ${totalCourses} Courses, ${liveUsers} Live`);
-  
-  return { totalUsers, totalQuestions, totalCourses, activeUsers, liveUsers };
+  // Signup trend: last 7 days
+  const signupTrend = await getSignupTrend(7);
+
+  console.log(`📊 Stats updated: ${totalUsers} Users, ${totalQuestions} Questions, ${totalCourses} Courses, ${liveUsers} Live, ${totalBooks} Books`);
+
+  return { totalUsers, totalQuestions, totalCourses, activeUsers, liveUsers, totalBooks, signupTrend };
 }
 
 app.get("/api/admin/presence", (req, res) => {
@@ -276,7 +281,34 @@ app.get("/api/admin/presence", (req, res) => {
   });
 });
 
+// 7-day signup trend endpoint
+app.get("/api/admin/stats/signups", async (req, res) => {
+  try {
+    const trend = await getSignupTrend(7);
+    res.json(trend);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch signup trend" });
+  }
+});
+
+async function getSignupTrend(days) {
+  const result = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const start = new Date();
+    start.setDate(start.getDate() - i);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(23, 59, 59, 999);
+    const count = await User.countDocuments({ createdAt: { $gte: start, $lte: end } });
+    result.push({
+      day: start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+      signups: count
+    });
+  }
+  return result;
+}
+
 async function emitAdminStats() {
   const stats = await fetchAdminStats();
   io.emit("ADMIN_STATS_UPDATE", stats);
-}
+}

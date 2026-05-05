@@ -16,6 +16,8 @@ const userSchema = new mongoose.Schema(
     streak:         { type: Number, default: 0 },
     lastQuizDate:   { type: Date, default: null },
     lastLoginPointDate: { type: Date },
+    lastLogin: { type: Date, default: null },
+    adminTheme: { type: String, default: "light", enum: ["light", "dark"] },
 
     // ===== Password Reset Fields =====
     resetPasswordToken:   { type: String },

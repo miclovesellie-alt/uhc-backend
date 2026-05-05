@@ -64,4 +64,15 @@ router.patch('/notifications/:id/read', authMiddleware, adminOnly, async (req, r
     }
 });
 
+// @desc    Clear ALL admin activity logs from DB
+// @route   DELETE /api/admin/activity/logs/clear
+router.delete('/logs/clear', authMiddleware, adminOnly, async (req, res) => {
+    try {
+        await AdminLog.deleteMany({});
+        res.json({ message: 'All activity logs cleared' });
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to clear logs' });
+    }
+});
+
 module.exports = router;

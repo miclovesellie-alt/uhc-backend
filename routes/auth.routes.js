@@ -91,6 +91,9 @@ router.post("/login", async (req, res) => {
       expiresIn: "1d",
     });
 
+    // Stamp last login time
+    user.lastLogin = new Date();
+
     // Add login point (Max 1 per 24 hours)
     const now = new Date();
     const lastPoint = user.lastLoginPointDate;
@@ -98,8 +101,8 @@ router.post("/login", async (req, res) => {
     if (!lastPoint || (now - lastPoint) >= 24 * 60 * 60 * 1000) {
       user.points = (user.points || 0) + 1;
       user.lastLoginPointDate = now;
-      await user.save();
     }
+    await user.save();
 
     // Notify Admins of User Login
     if (!['admin', 'superadmin'].includes(user.role)) {
@@ -295,4 +298,48 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-module.exports = router;
+// ---------------- ADMIN: UPDATE OWN PROFILE ----------------
+// PUT /api/auth/admin-profile
+router.put("/admin-profile", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return res.status(401).json({ message: "Unauthorized" });
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const admin = await User.findById(decoded.id);
+    if (!admin || !["admin", "superadmin"].includes(admin.role)) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+
+    const { name, email, password, adminTheme } = req.body;
+
+    if (name) admin.name = name.trim();
+    if (email) {
+      const existing = await User.findOne({ email, _id: { $ne: admin._id } });
+      if (existing) return res.status(400).json({ message: "Email already in use" });
+      admin.email = email.trim();
+    }
+    if (password) {
+      if (password.length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
+      admin.password = await bcrypt.hash(password, 10);
+    }
+    if (adminTheme) admin.adminTheme = adminTheme;
+
+    await admin.save();
+
+    await createAdminActivity(
+      admin._id,
+      'PROFILE_UPDATE',
+      `${admin.name} updated their admin profile`,
+      { type: 'User', id: admin._id, details: { name: admin.name }, notifType: 'INFO' }
+    );
+
+    const { password: _pw, resetPasswordToken: _t, resetPasswordExpires: _e, ...safeAdmin } = admin.toObject();
+    res.json(safeAdmin);
+  } catch (err) {
+    console.error("Admin profile update error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+module.exports = router;
