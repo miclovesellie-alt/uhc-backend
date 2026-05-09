@@ -44,6 +44,10 @@ const LibraryItem = require("./models/LibraryItem");
 // APP INIT
 // =========================
 const app = express();
+
+// Trust the reverse proxy (Render/Vercel) to get the real client IP
+app.set("trust proxy", 1);
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
