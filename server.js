@@ -48,6 +48,14 @@ const app = express();
 // Trust the reverse proxy (Render/Vercel) to get the real client IP
 app.set("trust proxy", 1);
 
+// Force HTTPS — redirect any HTTP request to HTTPS (Render sets X-Forwarded-Proto)
+app.use((req, res, next) => {
+  if (req.headers["x-forwarded-proto"] === "http") {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
