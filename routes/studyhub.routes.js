@@ -3,7 +3,30 @@ const router = express.Router();
 const Flashcard    = require("../models/Flashcard");
 const StudyNote    = require("../models/StudyNote");
 const ResourceLink = require("../models/ResourceLink");
+const Question     = require("../models/Question");
 const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
+
+/* ──────────────────────────────────────────────────────
+   Helper: convert a Question doc → flashcard-shaped object
+────────────────────────────────────────────────────── */
+function questionToCard(q) {
+  const letters = ["A", "B", "C", "D"];
+  const correctText = q.options[q.answer] || "";
+  // Build a hint showing all 4 options
+  const hint = q.options
+    .map((opt, i) => `${letters[i]}) ${opt}`)
+    .join("  •  ");
+  return {
+    _id:      `q_${q._id}`,   // prefix so it never clashes with Flashcard IDs
+    question: q.question,
+    answer:   correctText,
+    hint,
+    course:   q.course,
+    emoji:    "❓",
+    isActive: true,
+    _source:  "question",     // internal flag (not stored, just informational)
+  };
+}
 
 // ─── FLASHCARDS ────────────────────────────────────────────────
 // GET all active flashcards (optionally filtered by course)
@@ -117,16 +140,26 @@ router.delete("/resources/:id", authMiddleware, adminOnly, async (req, res) => {
 router.get("/all", async (req, res) => {
   try {
     const course = req.query.course || undefined;
-    const q = (c) => (c ? { isActive: true, course: c } : { isActive: true });
-    const [flashcards, notes, resources] = await Promise.all([
-      Flashcard.find(q(course)).sort({ createdAt: -1 }),
-      StudyNote.find(q(course)).sort({ createdAt: -1 }),
-      ResourceLink.find(q(course)).sort({ createdAt: -1 }),
+    const fcQuery  = course ? { isActive: true, course } : { isActive: true };
+    const qFilter  = course ? { course }                 : {};
+
+    const [manualCards, questions, notes, resources] = await Promise.all([
+      Flashcard.find({ ...fcQuery, status: { $in: ["approved", undefined] } }).sort({ createdAt: -1 }),
+      Question.find(qFilter).select("question options answer course").lean(),
+      StudyNote.find(course ? { isActive: true, course } : { isActive: true }).sort({ createdAt: -1 }),
+      ResourceLink.find(course ? { isActive: true, course } : { isActive: true }).sort({ createdAt: -1 }),
     ]);
+
+    // Convert questions → flashcard shape and merge after manual cards
+    const questionCards = questions.map(questionToCard);
+    const flashcards = [...manualCards, ...questionCards];
+
     res.json({ flashcards, notes, resources });
   } catch (err) {
+    console.error("Study Hub /all error:", err);
     res.status(500).json({ message: "Failed to fetch study hub data" });
   }
 });
 
 module.exports = router;
+
