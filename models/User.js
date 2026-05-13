@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema(
     category: { type: String, required: true },
     country: { type: String, required: true },
     points: { type: Number, default: 0 },
-    role:   { type: String, default: "user", enum: ["user", "admin", "superadmin"] },
+    role:   { type: String, default: "user", enum: ["user", "tutor", "health_worker", "admin", "superadmin"] },
     status: { type: String, default: "active", enum: ["active", "banned", "suspended"] },
     suspendedUntil: { type: Date, default: null },
     suspendReason:  { type: String, default: "" },
@@ -18,6 +18,10 @@ const userSchema = new mongoose.Schema(
     lastLoginPointDate: { type: Date },
     lastLogin: { type: Date, default: null },
     adminTheme: { type: String, default: "light", enum: ["light", "dark"] },
+
+    // ===== Institution (for tutors & health workers) =====
+    institution:          { type: mongoose.Schema.Types.ObjectId, ref: "Institution", default: null },
+    institutionVerified:  { type: Boolean, default: false },
 
     // ===== Password Reset Fields =====
     resetPasswordToken:   { type: String },

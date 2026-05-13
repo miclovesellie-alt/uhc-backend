@@ -32,6 +32,7 @@ const userNotificationsRoutes = require("./routes/userNotifications");
 const socialRoutes = require("./routes/social.routes");
 const submissionsRoutes = require("./routes/submissions");
 const studyHubRoutes    = require("./routes/studyhub.routes");
+const institutionRoutes = require("./routes/institution.routes");
 
 // =========================
 // IMPORT MODELS
@@ -155,6 +156,7 @@ safeUse("/api/points", pointsRoutes);
 safeUse("/api/admin/activity", adminActivityRoutes);
 safeUse("/api/user/notifications", userNotificationsRoutes);
 safeUse("/api/studyhub",           studyHubRoutes);
+safeUse("/api/institutions",       institutionRoutes);
 
 // =========================
 // COURSES ROUTES
