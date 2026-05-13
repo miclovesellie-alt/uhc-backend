@@ -1,53 +1,26 @@
-const sgMail = require("@sendgrid/mail");
-require("dotenv").config();
+const { Resend } = require("resend");
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM   = "UHC Academy <noreply@uhcacadamy.com>";
 
 /**
- * Sends an email using SendGrid.
+ * Sends an email using Resend.
+ * Drop-in replacement for the old SendGrid sendEmail function.
  * @param {Object} options - { to, subject, html, text }
  */
 const sendEmail = async ({ to, subject, html, text }) => {
-  const from = process.env.EMAIL_FROM || "unihealthplatform@gmail.com";
-  
-  if (!process.env.SENDGRID_API_KEY) {
-    console.error("❌ ERROR: SENDGRID_API_KEY is missing in environment variables.");
-    console.log("-----------------------------------------");
-    console.log(`SUBJECT: ${subject}`);
-    console.log(`TO: ${to}`);
-    console.log(`CONTENT (HTML): ${html.substring(0, 100)}...`);
-    console.log("-----------------------------------------");
-    return { success: false, error: "Missing API Key" };
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("⚠️  RESEND_API_KEY missing – email not sent");
+    console.log(`TO: ${to}  |  SUBJECT: ${subject}`);
+    return { success: false };
   }
-
-  const msg = {
-    to,
-    from,
-    subject,
-    html,
-    text: text || "This is a password reset email.",
-  };
-
   try {
-    await sgMail.send(msg);
-    console.log(`✅ Email sent successfully to ${to}`);
-    return { success: true };
-  } catch (error) {
-    console.error("❌ SendGrid Email Error:");
-    if (error.response) {
-      console.error(JSON.stringify(error.response.body, null, 2));
-    } else {
-      console.error(error.message);
-    }
-    
-    // Log the fallback URL to console if it's a reset email
-    if (html.includes("reset-password")) {
-      console.log("-----------------------------------------");
-      console.log("FALLBACK RESET URL:", html.match(/href="([^"]*)"/)?.[1]);
-      console.log("-----------------------------------------");
-    }
-    
-    return { success: false, error: error.message };
+    const data = await resend.emails.send({ from: FROM, to, subject, html, text });
+    console.log(`✅ Email sent to ${to} — id: ${data.id}`);
+    return { success: true, id: data.id };
+  } catch (err) {
+    console.error("❌ Resend error:", err.message);
+    return { success: false, error: err.message };
   }
 };
 

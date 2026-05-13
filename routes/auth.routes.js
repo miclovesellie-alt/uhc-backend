@@ -29,6 +29,10 @@ router.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generate email verification token
+    const verifyToken   = crypto.randomBytes(32).toString("hex");
+    const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
     const user = new User({
       name,
       email,
@@ -36,25 +40,119 @@ router.post("/signup", async (req, res) => {
       password: hashedPassword,
       category,
       country,
+      isEmailVerified:    false,
+      emailVerifyToken:   verifyToken,
+      emailVerifyExpires: verifyExpires,
     });
 
     await user.save();
 
-    // Log Activity for Admins
+    // Send verification email
+    const FRONTEND = process.env.FRONTEND_URL || "https://uhcacadamy.com";
+    const verifyUrl = `${FRONTEND}/verify-email?token=${verifyToken}`;
+
+    await sendEmail({
+      to: email,
+      subject: "✅ Verify your UHC Academy email",
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;background:#f8fafc;padding:40px 32px;border-radius:20px;border:1px solid #e2e8f0">
+          <div style="text-align:center;margin-bottom:24px">
+            <div style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#10b981,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent">UHC Academy</div>
+            <div style="font-size:0.8rem;letter-spacing:2px;text-transform:uppercase;color:#94a3b8">Universal Health Community</div>
+          </div>
+          <h2 style="color:#0f172a;margin:0 0 8px">Welcome, ${name}! 🎉</h2>
+          <p style="color:#475569;margin:0 0 24px">You're almost in. Click the button below to verify your email address and activate your account.</p>
+          <a href="${verifyUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:white;border-radius:12px;text-decoration:none;font-weight:700;font-size:1rem">Verify My Email →</a>
+          <p style="color:#94a3b8;font-size:0.8rem;margin:24px 0 0">This link expires in <strong>24 hours</strong>. If you didn't create an account, you can safely ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+          <p style="color:#cbd5e1;font-size:0.72rem">Or paste this link in your browser:<br>${verifyUrl}</p>
+        </div>
+      `
+    });
+
+    // Log signup activity
     await createUserActivityLog(
-      user._id, 
+      user._id,
       "USER_SIGNUP",
-      `${name} joined (${category})`, 
+      `${name} registered — awaiting email verification (${category})`,
       'INFO'
     );
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: "1d",
-    });
-
-    res.json({ token, user });
+    // Return "requires verification" signal — no JWT yet
+    res.status(201).json({ requiresVerification: true, email });
   } catch (err) {
     console.error("Signup error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ---------------- VERIFY EMAIL ----------------
+router.get("/verify-email", async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ message: "Token is required" });
+
+    const user = await User.findOne({
+      emailVerifyToken:   token,
+      emailVerifyExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Verification link is invalid or has expired. Please request a new one." });
+    }
+
+    user.isEmailVerified    = true;
+    user.emailVerifyToken   = undefined;
+    user.emailVerifyExpires = undefined;
+    await user.save();
+
+    await createUserActivityLog(user._id, "EMAIL_VERIFIED", `${user.name} verified their email`, 'INFO');
+
+    res.json({ message: "Email verified successfully! You can now log in." });
+  } catch (err) {
+    console.error("Email verify error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ---------------- RESEND VERIFICATION EMAIL ----------------
+router.post("/resend-verification", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email });
+    if (!user)           return res.json({ message: "If that account exists, a new verification link has been sent." });
+    if (user.isEmailVerified) return res.json({ message: "This account is already verified. Please log in." });
+
+    const verifyToken   = crypto.randomBytes(32).toString("hex");
+    const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    user.emailVerifyToken   = verifyToken;
+    user.emailVerifyExpires = verifyExpires;
+    await user.save();
+
+    const FRONTEND  = process.env.FRONTEND_URL || "https://uhcacadamy.com";
+    const verifyUrl = `${FRONTEND}/verify-email?token=${verifyToken}`;
+
+    await sendEmail({
+      to: email,
+      subject: "✅ New verification link — UHC Academy",
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;background:#f8fafc;padding:40px 32px;border-radius:20px;border:1px solid #e2e8f0">
+          <div style="text-align:center;margin-bottom:24px">
+            <div style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#10b981,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent">UHC Academy</div>
+          </div>
+          <h2 style="color:#0f172a">New Verification Link</h2>
+          <p style="color:#475569">Here's your new email verification link for <strong>${email}</strong>.</p>
+          <a href="${verifyUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#10b981,#0ea5e9);color:white;border-radius:12px;text-decoration:none;font-weight:700">Verify My Email →</a>
+          <p style="color:#94a3b8;font-size:0.8rem;margin-top:24px">This link expires in <strong>24 hours</strong>.</p>
+        </div>
+      `
+    });
+
+    res.json({ message: "A new verification link has been sent to your email." });
+  } catch (err) {
+    console.error("Resend verify error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -87,6 +185,15 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
+    // Block NEW users who haven't verified their email yet
+    // (existing users pre-verification-feature have no emailVerifyToken — they bypass this)
+    if (!user.isEmailVerified && user.emailVerifyToken) {
+      return res.status(403).json({
+        message: "Please verify your email before logging in. Check your inbox.",
+        requiresVerification: true,
+        email: user.email,
+      });
+    }
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: "1d",
     });
