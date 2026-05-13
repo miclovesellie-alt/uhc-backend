@@ -4,6 +4,7 @@ const https = require("https");
 const http = require("http");
 const Book = require("../models/Book");
 const FeedItem = require("../models/FeedItem");
+const Flashcard = require("../models/Flashcard");
 const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -128,6 +129,30 @@ router.post("/book", authMiddleware, uploadBook.single("file"), async (req, res)
 });
 
 // ════════════════════════════════════════════
+//  USER: Submit a flashcard (goes to pending)
+//  POST /api/submissions/flashcard
+// ════════════════════════════════════════════
+router.post("/flashcard", authMiddleware, async (req, res) => {
+  try {
+    const { question, answer, hint, course, emoji } = req.body;
+    if (!question || !answer || !course)
+      return res.status(400).json({ error: "Question, answer, and course are required" });
+    const card = await Flashcard.create({
+      question, answer, hint, course,
+      emoji: emoji || "🃏",
+      submittedBy: req.userId,
+      createdBy:   req.userId,
+      isActive: false,   // hidden until admin approves
+      status:   "pending",
+    });
+    res.status(201).json({ message: "Flashcard submitted for review!", card });
+  } catch (err) {
+    console.error("Flashcard submission error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════
 //  USER: Submit a feed post (goes to pending)
 //  POST /api/submissions/feed  (multipart/form-data)
 // ════════════════════════════════════════════
@@ -155,11 +180,12 @@ router.post("/feed", authMiddleware, uploadImage.single("image"), async (req, re
 // ════════════════════════════════════════════
 router.get("/pending", authMiddleware, adminOnly, async (req, res) => {
   try {
-    const [books, posts] = await Promise.all([
+    const [books, posts, flashcards] = await Promise.all([
       Book.find({ status: "pending" }).populate("submittedBy", "name email").sort({ createdAt: -1 }),
       FeedItem.find({ status: "pending" }).populate("submittedBy", "name email").sort({ createdAt: -1 }),
+      Flashcard.find({ status: "pending" }).populate("submittedBy", "name email").sort({ createdAt: -1 }),
     ]);
-    res.json({ books, posts });
+    res.json({ books, posts, flashcards });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -208,14 +234,37 @@ router.patch("/feed/:id/reject", authMiddleware, adminOnly, async (req, res) => 
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ════════════════════════════════════════════
+//  ADMIN: Approve / Reject a flashcard
+// ════════════════════════════════════════════
+router.patch("/flashcard/:id/approve", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const card = await Flashcard.findByIdAndUpdate(req.params.id,
+      { status: "approved", isActive: true }, { new: true }
+    );
+    res.json(card);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.patch("/flashcard/:id/reject", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const card = await Flashcard.findByIdAndUpdate(req.params.id,
+      { status: "rejected", rejectReason: req.body.reason || "Does not meet quality standards" },
+      { new: true }
+    );
+    res.json(card);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // Also update library/books GET to only return approved books for regular users
 router.get("/my-submissions", authMiddleware, async (req, res) => {
   try {
-    const [books, posts] = await Promise.all([
+    const [books, posts, flashcards] = await Promise.all([
       Book.find({ submittedBy: req.userId }).select("title course status rejectReason createdAt").sort({ createdAt: -1 }),
       FeedItem.find({ submittedBy: req.userId }).select("title status rejectReason createdAt").sort({ createdAt: -1 }),
+      Flashcard.find({ submittedBy: req.userId }).select("question course status rejectReason createdAt").sort({ createdAt: -1 }),
     ]);
-    res.json({ books, posts });
+    res.json({ books, posts, flashcards });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
