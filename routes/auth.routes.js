@@ -258,9 +258,12 @@ router.post("/admin-forgot-password", async (req, res) => {
 
     const token = crypto.randomBytes(32).toString("hex");
     await User.updateOne({ email }, {
-      resetPasswordToken: token,
+      resetPasswordToken:   token,
       resetPasswordExpires: Date.now() + 3600000,
     });
+
+    const FRONTEND  = process.env.FRONTEND_URL || "https://uhcacadamy.com";
+    const resetUrl  = `${FRONTEND}/reset-password/${token}`;
 
     await sendEmail({
       to: email,
@@ -350,11 +353,53 @@ router.post("/manual-reset-request", async (req, res) => {
   }
 });
 
-// ---------------- FORGOT PASSWORD (DEPRECATED) ----------------
+// ---------------- FORGOT PASSWORD ----------------
 router.post("/forgot-password", async (req, res) => {
-  return res.status(400).json({ 
-    message: "This feature has been deprecated. Please use the manual reset form." 
-  });
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    // Always return the same message to avoid user enumeration
+    const genericMsg = "If an account with that email exists, a reset link has been sent.";
+
+    const user = await User.findOne({ email });
+    if (!user) return res.json({ message: genericMsg });
+
+    const token   = crypto.randomBytes(32).toString("hex");
+    const expires = Date.now() + 60 * 60 * 1000; // 1 hour
+
+    await User.updateOne({ email }, {
+      resetPasswordToken:   token,
+      resetPasswordExpires: expires,
+    });
+
+    const FRONTEND  = process.env.FRONTEND_URL || "https://uhcacadamy.com";
+    const resetUrl  = `${FRONTEND}/reset-password/${token}`;
+
+    await sendEmail({
+      to: email,
+      subject: "🔐 Reset your UHC Academy password",
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;background:#f8fafc;padding:40px 32px;border-radius:20px;border:1px solid #e2e8f0">
+          <div style="text-align:center;margin-bottom:24px">
+            <div style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#10b981,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent">UHC Academy</div>
+          </div>
+          <h2 style="color:#0f172a;margin:0 0 8px">🔐 Password Reset</h2>
+          <p style="color:#475569;margin:0 0 24px">We received a request to reset the password for <strong>${email}</strong>. Click the button below to create a new password.</p>
+          <a href="${resetUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#4255ff,#8b5cf6);color:white;border-radius:12px;text-decoration:none;font-weight:700;font-size:1rem">Reset My Password →</a>
+          <p style="color:#94a3b8;font-size:0.8rem;margin:24px 0 0">This link expires in <strong>1 hour</strong>. If you didn't request a reset, you can safely ignore this email.</p>
+          <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+          <p style="color:#cbd5e1;font-size:0.72rem">Or paste this link in your browser:<br>${resetUrl}</p>
+        </div>
+      `
+    });
+
+    await createUserActivityLog(user._id, "PASSWORD_RESET_REQUEST", `Password reset email sent to ${email}`, 'WARNING');
+    res.json({ message: genericMsg });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // ---------------- RESET PASSWORD ----------------
