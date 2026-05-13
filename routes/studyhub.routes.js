@@ -1,0 +1,132 @@
+const express = require("express");
+const router = express.Router();
+const Flashcard    = require("../models/Flashcard");
+const StudyNote    = require("../models/StudyNote");
+const ResourceLink = require("../models/ResourceLink");
+const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
+
+// ─── FLASHCARDS ────────────────────────────────────────────────
+// GET all active flashcards (optionally filtered by course)
+router.get("/flashcards", async (req, res) => {
+  try {
+    const query = { isActive: true };
+    if (req.query.course) query.course = req.query.course;
+    const cards = await Flashcard.find(query).sort({ createdAt: -1 });
+    res.json(cards);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch flashcards" });
+  }
+});
+
+// POST create flashcard (admin only)
+router.post("/flashcards", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { question, answer, hint, course, emoji } = req.body;
+    if (!question || !answer || !course)
+      return res.status(400).json({ message: "question, answer, and course are required" });
+    const card = await Flashcard.create({ question, answer, hint, course, emoji, createdBy: req.userId });
+    res.status(201).json(card);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to create flashcard" });
+  }
+});
+
+// DELETE flashcard (admin only)
+router.delete("/flashcards/:id", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await Flashcard.findByIdAndDelete(req.params.id);
+    res.json({ message: "Flashcard deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete flashcard" });
+  }
+});
+
+// ─── STUDY NOTES ────────────────────────────────────────────────
+// GET all active notes
+router.get("/notes", async (req, res) => {
+  try {
+    const query = { isActive: true };
+    if (req.query.course) query.course = req.query.course;
+    const notes = await StudyNote.find(query).sort({ createdAt: -1 });
+    res.json(notes);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch notes" });
+  }
+});
+
+// POST create note (admin only)
+router.post("/notes", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { title, body, course, emoji, color } = req.body;
+    if (!title || !body || !course)
+      return res.status(400).json({ message: "title, body, and course are required" });
+    const note = await StudyNote.create({ title, body, course, emoji, color, createdBy: req.userId });
+    res.status(201).json(note);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to create note" });
+  }
+});
+
+// DELETE note (admin only)
+router.delete("/notes/:id", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await StudyNote.findByIdAndDelete(req.params.id);
+    res.json({ message: "Note deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete note" });
+  }
+});
+
+// ─── RESOURCE LINKS ────────────────────────────────────────────
+// GET all active resources
+router.get("/resources", async (req, res) => {
+  try {
+    const query = { isActive: true };
+    if (req.query.course) query.course = req.query.course;
+    const resources = await ResourceLink.find(query).sort({ createdAt: -1 });
+    res.json(resources);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch resources" });
+  }
+});
+
+// POST create resource (admin only)
+router.post("/resources", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { title, url, description, type, course } = req.body;
+    if (!title || !url || !course)
+      return res.status(400).json({ message: "title, url, and course are required" });
+    const resource = await ResourceLink.create({ title, url, description, type, course, createdBy: req.userId });
+    res.status(201).json(resource);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to create resource" });
+  }
+});
+
+// DELETE resource (admin only)
+router.delete("/resources/:id", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    await ResourceLink.findByIdAndDelete(req.params.id);
+    res.json({ message: "Resource deleted" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete resource" });
+  }
+});
+
+// ─── ALL DATA in one shot (used by the student page) ────────────
+router.get("/all", async (req, res) => {
+  try {
+    const course = req.query.course || undefined;
+    const q = (c) => (c ? { isActive: true, course: c } : { isActive: true });
+    const [flashcards, notes, resources] = await Promise.all([
+      Flashcard.find(q(course)).sort({ createdAt: -1 }),
+      StudyNote.find(q(course)).sort({ createdAt: -1 }),
+      ResourceLink.find(q(course)).sort({ createdAt: -1 }),
+    ]);
+    res.json({ flashcards, notes, resources });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch study hub data" });
+  }
+});
+
+module.exports = router;
