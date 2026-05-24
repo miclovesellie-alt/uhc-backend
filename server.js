@@ -6,6 +6,7 @@ require("dotenv").config();
 const http = require("http");
 const { Server } = require("socket.io");
 const rateLimit = require("express-rate-limit");
+const passport = require("passport");
 
 // Rate limiters
 const globalLimiter = rateLimit({ windowMs: 15*60*1000, max: 300, standardHeaders: true, legacyHeaders: false });
@@ -16,6 +17,7 @@ const authLimiter  = rateLimit({ windowMs: 15*60*1000, max: 20,  message: { mess
 // IMPORT ROUTES
 // =========================
 const authRoutes = require("./routes/auth.routes");
+const googleAuthRoutes = require("./routes/google.auth");
 const uploadQuestionsRoute = require("./routes/uploadQuestions");
 const questionsRoute = require("./routes/questions"); // exports { router, setIO }
 const adminQuestionsRoutes = require("./routes/adminQuestions");
@@ -119,6 +121,7 @@ app.use(cors({ origin: "*" })); // Allows any frontend to call API routes
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(passport.initialize());
 // Rate limiting — apply globally, stricter on auth
 app.use("/api", globalLimiter);
 app.use("/api/auth/login", authLimiter);
@@ -142,6 +145,7 @@ function safeUse(path, route) {
 // API ROUTES (SAFE)
 // =========================
 safeUse("/api/auth", authRoutes);
+safeUse("/api/auth/google", googleAuthRoutes);
 safeUse("/api/upload-questions", uploadQuestionsRoute);
 safeUse("/api/questions", questionsRoute); // now works
 safeUse("/api/admin/questions", adminQuestionsRoutes);
