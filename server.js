@@ -209,6 +209,40 @@ app.post("/api/courses", async (req, res) => {
   }
 });
 
+app.put("/api/courses/:name", async (req, res) => {
+  try {
+    const oldName = decodeURIComponent(req.params.name);
+    const { name: newName } = req.body;
+
+    if (!newName || !newName.trim())
+      return res.status(400).json({ message: "New course name is required" });
+
+    const trimmedName = newName.trim();
+    const newSlug = trimmedName.toLowerCase().replace(/\s+/g, "-");
+
+    // Check the new name doesn't conflict with an existing course
+    const conflict = await Course.findOne({ name: trimmedName });
+    if (conflict && conflict.name !== oldName)
+      return res.status(400).json({ message: "A course with that name already exists" });
+
+    // Update the Course document (upsert in case it only exists on questions)
+    await Course.findOneAndUpdate(
+      { name: oldName },
+      { name: trimmedName, slug: newSlug },
+      { upsert: true, new: true }
+    );
+
+    // Remap all questions from old name to new name
+    await Question.updateMany({ course: oldName }, { $set: { course: trimmedName } });
+
+    res.json({ message: "Course renamed successfully", oldName, newName: trimmedName });
+    emitAdminStats();
+  } catch (err) {
+    console.error("Rename course error:", err);
+    res.status(500).json({ message: "Failed to rename course" });
+  }
+});
+
 app.delete("/api/courses/:name", async (req, res) => {
   try {
     const name = decodeURIComponent(req.params.name);

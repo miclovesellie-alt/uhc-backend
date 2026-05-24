@@ -30,8 +30,29 @@ router.get("/counts-by-course", async (req, res) => {
   }
 });
 
+/* MOVE QUESTIONS TO A DIFFERENT COURSE (bulk) */
+router.put("/move-to-course", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { ids, targetCourse } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ message: "No question IDs provided" });
+    if (!targetCourse || !targetCourse.trim())
+      return res.status(400).json({ message: "Target course is required" });
+
+    const result = await require("../models/Question").updateMany(
+      { _id: { $in: ids } },
+      { $set: { course: targetCourse.trim() } }
+    );
+
+    res.json({ message: "Questions moved successfully", updatedCount: result.modifiedCount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 /* CREATE QUESTION */
 router.post("/", authMiddleware, adminOnly, createQuestion);
+
 
 /* UPDATE QUESTION */
 router.put("/:id", authMiddleware, adminOnly, updateQuestion);
