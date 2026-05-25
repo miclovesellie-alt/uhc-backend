@@ -324,12 +324,16 @@ async function fetchAdminStats() {
   const liveUsers = presenceTracker.getActiveCount();
 
   // Study Hub totals
-  const [fcCount, noteCount, resCount] = await Promise.all([
+  // totalFlashcards = manually-created Flashcard docs + question-derived (Question count)
+  const [fcCount, noteCount, resCount, questionCount] = await Promise.all([
     Flashcard.countDocuments(),
     StudyNote.countDocuments({ isActive: true }),
     ResourceLink.countDocuments({ isActive: true }),
+    Question.countDocuments(),
   ]);
-  const totalStudyHub = fcCount + noteCount + resCount;
+  // Flashcards visible to students = manual cards + all questions (shown as flashcards)
+  const totalFlashcards = fcCount + questionCount;
+  const totalStudyHub = totalFlashcards + noteCount + resCount;
 
   // Signup trend: last 7 days
   const signupTrend = await getSignupTrend(7);
