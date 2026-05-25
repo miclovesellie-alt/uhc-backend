@@ -43,6 +43,9 @@ const User = require("./models/User");
 const Question = require("./models/Question");
 const Course = require("./models/Course");
 const LibraryItem = require("./models/LibraryItem");
+const Flashcard    = require("./models/Flashcard");
+const StudyNote    = require("./models/StudyNote");
+const ResourceLink = require("./models/ResourceLink");
 
 // =========================
 // APP INIT
@@ -320,12 +323,20 @@ async function fetchAdminStats() {
 
   const liveUsers = presenceTracker.getActiveCount();
 
+  // Study Hub totals
+  const [fcCount, noteCount, resCount] = await Promise.all([
+    Flashcard.countDocuments(),
+    StudyNote.countDocuments({ isActive: true }),
+    ResourceLink.countDocuments({ isActive: true }),
+  ]);
+  const totalStudyHub = fcCount + noteCount + resCount;
+
   // Signup trend: last 7 days
   const signupTrend = await getSignupTrend(7);
 
-  console.log(`📊 Stats updated: ${totalUsers} Users, ${totalQuestions} Questions, ${totalCourses} Courses, ${liveUsers} Live, ${totalBooks} Books`);
+  console.log(`📊 Stats updated: ${totalUsers} Users, ${totalQuestions} Questions, ${totalCourses} Courses, ${liveUsers} Live, ${totalBooks} Books, ${totalStudyHub} StudyHub`);
 
-  return { totalUsers, totalQuestions, totalCourses, activeUsers, liveUsers, totalBooks, signupTrend };
+  return { totalUsers, totalQuestions, totalCourses, activeUsers, liveUsers, totalBooks, totalStudyHub, signupTrend };
 }
 
 app.get("/api/admin/presence", (req, res) => {

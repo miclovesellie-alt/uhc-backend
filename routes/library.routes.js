@@ -107,11 +107,24 @@ router.delete("/books/:id", authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
-// @desc    Get all courses
+// @desc    Get all courses (unified — uses Course model, same source as Questions section)
 router.get("/courses", async (req, res) => {
   try {
-    const courses = await Book.distinct("course");
-    res.json(courses);
+    const Course = require("../models/Course");
+    const Question = require("../models/Question");
+    const [dbCourses, questionCourses] = await Promise.all([
+      Course.find({ isActive: true }).lean(),
+      Question.distinct("course"),
+    ]);
+    const allNames = new Set([
+      ...dbCourses.map(c => c.name),
+      ...questionCourses.filter(Boolean),
+    ]);
+    const sorted = Array.from(allNames).sort().map(name => ({
+      name,
+      slug: name.toLowerCase().replace(/\s+/g, "-"),
+    }));
+    res.json(sorted);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch courses" });
   }

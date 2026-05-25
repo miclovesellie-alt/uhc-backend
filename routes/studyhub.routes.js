@@ -54,6 +54,22 @@ router.post("/flashcards", authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// PUT update flashcard (admin only)
+router.put("/flashcards/:id", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { question, answer, hint, course, emoji } = req.body;
+    const card = await Flashcard.findByIdAndUpdate(
+      req.params.id,
+      { question, answer, hint, course, emoji },
+      { new: true, runValidators: true }
+    );
+    if (!card) return res.status(404).json({ message: "Flashcard not found" });
+    res.json(card);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update flashcard" });
+  }
+});
+
 // DELETE flashcard (admin only)
 router.delete("/flashcards/:id", authMiddleware, adminOnly, async (req, res) => {
   try {
@@ -90,6 +106,22 @@ router.post("/notes", authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// PUT update note (admin only)
+router.put("/notes/:id", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { title, body, course, emoji, color } = req.body;
+    const note = await StudyNote.findByIdAndUpdate(
+      req.params.id,
+      { title, body, course, emoji, color },
+      { new: true, runValidators: true }
+    );
+    if (!note) return res.status(404).json({ message: "Note not found" });
+    res.json(note);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update note" });
+  }
+});
+
 // DELETE note (admin only)
 router.delete("/notes/:id", authMiddleware, adminOnly, async (req, res) => {
   try {
@@ -123,6 +155,22 @@ router.post("/resources", authMiddleware, adminOnly, async (req, res) => {
     res.status(201).json(resource);
   } catch (err) {
     res.status(500).json({ message: "Failed to create resource" });
+  }
+});
+
+// PUT update resource (admin only)
+router.put("/resources/:id", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { title, url, description, type, course } = req.body;
+    const resource = await ResourceLink.findByIdAndUpdate(
+      req.params.id,
+      { title, url, description, type, course },
+      { new: true, runValidators: true }
+    );
+    if (!resource) return res.status(404).json({ message: "Resource not found" });
+    res.json(resource);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update resource" });
   }
 });
 
