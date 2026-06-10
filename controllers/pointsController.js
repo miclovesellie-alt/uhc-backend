@@ -6,7 +6,7 @@ const { notifyUser } = require("../utils/userNotifier");
 // @route   POST /api/points/add
 exports.addPoints = async (req, res) => {
   try {
-    const { amount, reason } = req.body;
+    const { amount, reason, course, questionsAnswered, totalQuestions } = req.body;
     const userId = req.user?.id || req.userId;
 
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
@@ -15,23 +15,33 @@ exports.addPoints = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     user.points = (user.points || 0) + (amount || 0);
-    
-    // For now, just save the user
     await user.save();
 
-    // Notify Admins
+    // Build a rich admin notification message
+    let adminMsg = `"${user.name}" earned ${amount} pts`;
+    if (course) adminMsg += ` · Course: ${course}`;
+    if (questionsAnswered !== undefined && totalQuestions) {
+      const pct = Math.round((questionsAnswered / totalQuestions) * 100);
+      adminMsg += ` · ${questionsAnswered}/${totalQuestions} correct (${pct}%)`;
+    }
+
+    // Notify Admins — use QUIZ_COMPLETED action + WARNING type so it appears under Quiz tab
     await createUserActivityLog(
       user._id,
-      `User earned ${amount} pts: "${user.name}" (${reason})`,
-      'SUCCESS'
+      "QUIZ_COMPLETED",
+      adminMsg,
+      "WARNING"
     );
-    
-    // Notify User
-    await notifyUser(user._id, `You earned ${amount} points for ${reason}!`, 'SUCCESS');
 
-    res.json({ 
-      message: `Earned ${amount} points for ${reason}!`, 
-      totalPoints: user.points 
+    // Notify User
+    const userMsg = course
+      ? `You earned ${amount} points for completing the ${course} quiz!`
+      : `You earned ${amount} points for ${reason}!`;
+    await notifyUser(user._id, userMsg, "SUCCESS");
+
+    res.json({
+      message: `Earned ${amount} points for ${reason}!`,
+      totalPoints: user.points,
     });
   } catch (err) {
     console.error("Points error:", err);
