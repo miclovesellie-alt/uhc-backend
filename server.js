@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const path = require("path");
@@ -55,7 +55,7 @@ const app = express();
 // Trust the reverse proxy (Render/Vercel) to get the real client IP
 app.set("trust proxy", 1);
 
-// Force HTTPS — redirect any HTTP request to HTTPS (Render sets X-Forwarded-Proto)
+// Force HTTPS â€” redirect any HTTP request to HTTPS (Render sets X-Forwarded-Proto)
 app.use((req, res, next) => {
   if (req.headers["x-forwarded-proto"] === "http") {
     return res.redirect(301, `https://${req.headers.host}${req.url}`);
@@ -125,7 +125,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(passport.initialize());
-// Rate limiting — apply globally, stricter on auth
+// Rate limiting â€” apply globally, stricter on auth
 app.use("/api", globalLimiter);
 app.use("/api/auth/login", authLimiter);
 app.use("/api/auth/signup", authLimiter);
@@ -140,7 +140,7 @@ function safeUse(path, route) {
   } else if (route && route.router) {
     app.use(path, route.router);
   } else {
-    console.warn(`Skipping ${path} — not a valid router function`);
+    console.warn(`Skipping ${path} â€” not a valid router function`);
   }
 }
 
@@ -338,7 +338,7 @@ async function fetchAdminStats() {
   // Signup trend: last 7 days
   const signupTrend = await getSignupTrend(7);
 
-  console.log(`📊 Stats updated: ${totalUsers} Users, ${totalQuestions} Questions, ${totalCourses} Courses, ${liveUsers} Live, ${totalBooks} Books, ${totalStudyHub} StudyHub`);
+  console.log(`ðŸ“Š Stats updated: ${totalUsers} Users, ${totalQuestions} Questions, ${totalCourses} Courses, ${liveUsers} Live, ${totalBooks} Books, ${totalStudyHub} StudyHub`);
 
   return { totalUsers, totalQuestions, totalCourses, activeUsers, liveUsers, totalBooks, totalStudyHub, signupTrend };
 }
@@ -350,11 +350,13 @@ app.get("/api/admin/presence", (req, res) => {
   });
 });
 
-// 7-day signup trend endpoint
+// Signup trend endpoint - supports ?days=N, returns { trend, total }
 app.get("/api/admin/stats/signups", async (req, res) => {
   try {
-    const trend = await getSignupTrend(7);
-    res.json(trend);
+    const days = Math.min(parseInt(req.query.days) || 7, 365);
+    const trend = await getSignupTrend(days);
+    const total = trend.reduce((sum, d) => sum + d.signups, 0);
+    res.json({ trend, total });
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch signup trend" });
   }
@@ -380,4 +382,5 @@ async function getSignupTrend(days) {
 async function emitAdminStats() {
   const stats = await fetchAdminStats();
   io.emit("ADMIN_STATS_UPDATE", stats);
-}
+}
+
