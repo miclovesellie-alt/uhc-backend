@@ -142,6 +142,7 @@ router.post("/messages/:id/reply", authMiddleware, adminOnly, async (req, res) =
     originalMsg.repliedAt  = new Date();
     originalMsg.repliedBy  = req.userId;
     originalMsg.status     = "read";
+    originalMsg.userRead   = false;
     await originalMsg.save();
 
     // In-app notification for the user
@@ -215,6 +216,7 @@ router.post("/message-user/:userId", authMiddleware, adminOnly, async (req, res)
       repliedAt:  new Date(),
       repliedBy:  req.userId,
       status:  "read",
+      userRead: false,
     });
 
     // In-app UserNotification
@@ -285,6 +287,7 @@ router.patch("/my-messages/:id/read", authMiddleware, async (req, res) => {
     const msg = await Message.findOne({ _id: req.params.id, userId: req.userId });
     if (!msg) return res.status(404).json({ message: "Message not found or unauthorized" });
     msg.status = "read";
+    msg.userRead = true;
     await msg.save();
     res.json(msg);
   } catch (err) {

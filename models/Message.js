@@ -16,6 +16,7 @@ const messageSchema = new mongoose.Schema(
     adminReply:  { type: String, default: "" },
     repliedAt:   { type: Date, default: null },
     repliedBy:   { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    userRead:    { type: Boolean, default: true },
   },
   { timestamps: true }
 );
