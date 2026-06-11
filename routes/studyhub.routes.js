@@ -1,10 +1,11 @@
 const express = require("express");
-const router = express.Router();
+const router  = express.Router();
 const Flashcard    = require("../models/Flashcard");
 const StudyNote    = require("../models/StudyNote");
 const ResourceLink = require("../models/ResourceLink");
 const Question     = require("../models/Question");
 const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
+const { createUserActivityLog }     = require("../utils/adminLogger");
 
 /* ──────────────────────────────────────────────────────
    Helper: convert a Question doc → flashcard-shaped object
@@ -12,24 +13,24 @@ const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
 function questionToCard(q) {
   const letters = ["A", "B", "C", "D"];
   const correctText = q.options[q.answer] || "";
-  // Build a hint showing all 4 options
   const hint = q.options
     .map((opt, i) => `${letters[i]}) ${opt}`)
     .join("  •  ");
   return {
-    _id:      `q_${q._id}`,   // prefix so it never clashes with Flashcard IDs
+    _id:      `q_${q._id}`,
     question: q.question,
     answer:   correctText,
     hint,
     course:   q.course,
     emoji:    "❓",
     isActive: true,
-    _source:  "question",     // internal flag (not stored, just informational)
+    _source:  "question",
   };
 }
 
 // ─── FLASHCARDS ────────────────────────────────────────────────
-// GET all active flashcards (optionally filtered by course)
+
+// GET all active flashcards
 router.get("/flashcards", async (req, res) => {
   try {
     const query = { isActive: true };
@@ -80,7 +81,31 @@ router.delete("/flashcards/:id", authMiddleware, adminOnly, async (req, res) => 
   }
 });
 
+// POST /flashcards/:id/open — track when a user opens a flashcard (logs for daily summary + admin notification)
+router.post("/flashcards/:id/open", authMiddleware, async (req, res) => {
+  try {
+    const User   = require("../models/User");
+    const user   = await User.findById(req.userId).select("name");
+    const cardId = req.params.id;
+    let cardLabel = `Flashcard`;
+    if (!cardId.startsWith("q_")) {
+      const card = await Flashcard.findById(cardId).select("question course");
+      if (card) cardLabel = `"${(card.question || "").slice(0, 50)}" (${card.course})`;
+    }
+    await createUserActivityLog(
+      req.userId,
+      "FLASHCARD_OPENED",
+      `${user?.name || "A user"} opened a flashcard: ${cardLabel}`,
+      "INFO"
+    );
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: true }); // non-critical, swallow errors
+  }
+});
+
 // ─── STUDY NOTES ────────────────────────────────────────────────
+
 // GET all active notes
 router.get("/notes", async (req, res) => {
   try {
@@ -132,7 +157,51 @@ router.delete("/notes/:id", authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
+// POST /notes/:id/open — log that a user opened/read a note; increments openCount
+router.post("/notes/:id/open", authMiddleware, async (req, res) => {
+  try {
+    const User = require("../models/User");
+    const [user, note] = await Promise.all([
+      User.findById(req.userId).select("name"),
+      StudyNote.findByIdAndUpdate(req.params.id, { $inc: { openCount: 1 } }, { new: true }).select("title course"),
+    ]);
+    if (note) {
+      await createUserActivityLog(
+        req.userId,
+        "NOTE_OPENED",
+        `${user?.name || "A user"} opened note: "${note.title}" (${note.course})`,
+        "INFO"
+      );
+    }
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: true });
+  }
+});
+
+// POST /notes/:id/like — toggle like/unlike a note (authenticated users)
+router.post("/notes/:id/like", authMiddleware, async (req, res) => {
+  try {
+    const note = await StudyNote.findById(req.params.id);
+    if (!note) return res.status(404).json({ message: "Note not found" });
+
+    const uid   = req.userId.toString();
+    const liked = note.likes.map(id => id.toString()).includes(uid);
+
+    if (liked) {
+      note.likes = note.likes.filter(id => id.toString() !== uid);
+    } else {
+      note.likes.push(req.userId);
+    }
+    await note.save();
+    res.json({ liked: !liked, likeCount: note.likes.length });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to toggle like" });
+  }
+});
+
 // ─── RESOURCE LINKS ────────────────────────────────────────────
+
 // GET all active resources
 router.get("/resources", async (req, res) => {
   try {
@@ -187,9 +256,9 @@ router.delete("/resources/:id", authMiddleware, adminOnly, async (req, res) => {
 // ─── ALL DATA in one shot (used by the student page) ────────────
 router.get("/all", async (req, res) => {
   try {
-    const course = req.query.course || undefined;
-    const fcQuery  = course ? { isActive: true, course } : { isActive: true };
-    const qFilter  = course ? { course }                 : {};
+    const course  = req.query.course || undefined;
+    const fcQuery = course ? { isActive: true, course } : { isActive: true };
+    const qFilter = course ? { course }                 : {};
 
     const [manualCards, questions, notes, resources] = await Promise.all([
       Flashcard.find({ ...fcQuery, status: { $in: ["approved", undefined] } }).sort({ createdAt: -1 }),
@@ -198,9 +267,8 @@ router.get("/all", async (req, res) => {
       ResourceLink.find(course ? { isActive: true, course } : { isActive: true }).sort({ createdAt: -1 }),
     ]);
 
-    // Convert questions → flashcard shape and merge after manual cards
     const questionCards = questions.map(questionToCard);
-    const flashcards = [...manualCards, ...questionCards];
+    const flashcards    = [...manualCards, ...questionCards];
 
     res.json({ flashcards, notes, resources });
   } catch (err) {
@@ -210,4 +278,3 @@ router.get("/all", async (req, res) => {
 });
 
 module.exports = router;
-

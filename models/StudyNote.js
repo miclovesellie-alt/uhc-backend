@@ -9,6 +9,9 @@ const studyNoteSchema = new mongoose.Schema(
     color:     { type: String, default: "#10b981" }, // accent color for the card
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     isActive:  { type: Boolean, default: true },
+    // Engagement
+    likes:     [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    openCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
