@@ -10,6 +10,7 @@ const messageSchema = new mongoose.Schema(
     userId:  { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     // 'contact' = landing page form, 'suggestion' = logged-in user from profile, 'admin_reply' = admin to user
     source:  { type: String, default: "contact", enum: ["contact", "suggestion", "admin_reply"] },
+    category: { type: String, default: "others", enum: ["password", "suggestion", "others", "admin_reply"] },
     status:  { type: String, default: "unread", enum: ["unread", "read", "archived"] },
     // Admin reply fields
     adminReply:  { type: String, default: "" },

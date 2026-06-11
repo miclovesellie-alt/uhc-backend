@@ -49,30 +49,34 @@ router.post("/", async (req, res) => {
 // ── POST /api/contact/suggestions  (logged-in user → admin suggestion) ───────
 router.post("/suggestions", authMiddleware, async (req, res) => {
   try {
-    const { subject, message } = req.body;
+    const { subject, message, category } = req.body;
     if (!message || !message.trim())
       return res.status(400).json({ message: "Message is required" });
 
     const user = await User.findById(req.userId).select("name email");
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    const catLabel = category ? category.charAt(0).toUpperCase() + category.slice(1) : "Suggestion";
+    const finalSubject = subject ? `[${catLabel}] ${subject}` : `[${catLabel}] Message from ${user.name}`;
+
     const newMsg = await Message.create({
       name:    user.name,
       email:   user.email,
-      subject: subject || "User Suggestion",
+      subject: finalSubject,
       message: message.trim(),
       userId:  req.userId,
       source:  "suggestion",
+      category: category || "suggestion",
     });
 
     await sendEmail({
       to: "boafokyei3@gmail.com",
-      subject: `💬 User Suggestion from ${user.name}${subject ? ` — ${subject}` : ""}`,
+      subject: `💬 ${catLabel}: ${user.name}${subject ? ` — ${subject}` : ""}`,
       html: `
         <div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;background:#f8fafc;padding:32px;border-radius:16px;border:1px solid #e2e8f0;">
           <div style="font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,#4255ff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;">UHC Academy</div>
-          <div style="font-size:0.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px;">User Suggestion</div>
-          <h2 style="color:#0f172a;margin:0 0 8px;">💬 ${subject || "New Suggestion"}</h2>
+          <div style="font-size:0.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px;">User Message (${catLabel})</div>
+          <h2 style="color:#0f172a;margin:0 0 8px;">💬 ${subject || "New Message"}</h2>
           <p style="color:#475569;margin:0 0 4px;"><strong>From:</strong> ${user.name} (${user.email})</p>
           <div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin:16px 0;color:#334155;line-height:1.6;">
             ${message.trim().replace(/\n/g, "<br>")}
@@ -86,14 +90,14 @@ router.post("/suggestions", authMiddleware, async (req, res) => {
     await createUserActivityLog(
       req.userId,
       "USER_MESSAGE",
-      `${user.name} sent a message: ${subject || "No Subject"}`,
+      `${user.name} sent a ${category || "suggestion"}: ${subject || "No Subject"}`,
       "INFO"
     );
 
-    res.status(201).json({ message: "Suggestion sent successfully", id: newMsg._id });
+    res.status(201).json({ message: "Message sent successfully", id: newMsg._id });
   } catch (err) {
     console.error("Suggestion error:", err);
-    res.status(500).json({ message: "Failed to send suggestion" });
+    res.status(500).json({ message: "Failed to send message" });
   }
 });
 
@@ -261,6 +265,30 @@ router.delete("/messages/:id", authMiddleware, adminOnly, async (req, res) => {
     res.json({ message: "Message deleted" });
   } catch (err) {
     res.status(500).json({ message: "Delete failed" });
+  }
+});
+
+// ── GET /api/contact/my-messages  (logged-in user: get their conversation thread) ──
+router.get("/my-messages", authMiddleware, async (req, res) => {
+  try {
+    const messages = await Message.find({ userId: req.userId })
+      .sort({ createdAt: -1 });
+    res.json(messages);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch user messages" });
+  }
+});
+
+// ── PATCH /api/contact/my-messages/:id/read  (logged-in user: mark message as read) ──
+router.patch("/my-messages/:id/read", authMiddleware, async (req, res) => {
+  try {
+    const msg = await Message.findOne({ _id: req.params.id, userId: req.userId });
+    if (!msg) return res.status(404).json({ message: "Message not found or unauthorized" });
+    msg.status = "read";
+    await msg.save();
+    res.json(msg);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to mark message as read" });
   }
 });
 
