@@ -5,6 +5,7 @@ const UserNotification = require("../models/UserNotification");
 const User             = require("../models/User");
 const { sendEmail }    = require("../utils/mail");
 const { authMiddleware, adminOnly } = require("../middleware/auth.middleware");
+const { createUserActivityLog } = require("../utils/adminLogger");
 
 let io;
 const setIO = (_io) => { io = _io; };
@@ -81,13 +82,13 @@ router.post("/suggestions", authMiddleware, async (req, res) => {
       `,
     });
 
-    if (io) {
-      io.emit("NEW_ADMIN_NOTIFICATION", {
-        type: "INFO", title: "💬 New User Suggestion",
-        desc: `${user.name}: ${(subject || message).slice(0, 60)}`,
-        time: "Just now", color: "blue",
-      });
-    }
+    // Log user activity and trigger admin notification (database + socket)
+    await createUserActivityLog(
+      req.userId,
+      "USER_MESSAGE",
+      `${user.name} sent a message: ${subject || "No Subject"}`,
+      "INFO"
+    );
 
     res.status(201).json({ message: "Suggestion sent successfully", id: newMsg._id });
   } catch (err) {
@@ -183,6 +184,73 @@ router.post("/messages/:id/reply", authMiddleware, adminOnly, async (req, res) =
   } catch (err) {
     console.error("Admin reply error:", err);
     res.status(500).json({ message: "Failed to send reply" });
+  }
+});
+
+// ── POST /api/contact/message-user/:userId  (admin → specific user direct message) ─
+router.post("/message-user/:userId", authMiddleware, adminOnly, async (req, res) => {
+  try {
+    const { subject, messageText } = req.body;
+    if (!messageText?.trim()) return res.status(400).json({ message: "Message text is required" });
+
+    const [targetUser, admin] = await Promise.all([
+      User.findById(req.params.userId).select("name email"),
+      User.findById(req.userId).select("name"),
+    ]);
+    if (!targetUser) return res.status(404).json({ message: "User not found" });
+
+    // Store as Message (shows in admin Messages panel)
+    await Message.create({
+      name:    admin?.name || "Admin",
+      email:   "admin@uhcacadamy.com",
+      subject: subject || `Message from Admin`,
+      message: messageText.trim(),
+      userId:  req.params.userId,
+      source:  "admin_reply",
+      adminReply: messageText.trim(),
+      repliedAt:  new Date(),
+      repliedBy:  req.userId,
+      status:  "read",
+    });
+
+    // In-app UserNotification
+    await UserNotification.create({
+      recipient:  req.params.userId,
+      message:    `📨 ${admin?.name || "Admin"}: ${messageText.trim().slice(0, 120)}${messageText.length > 120 ? "…" : ""}`,
+      type:       "MESSAGE",
+      actionLink: "/profile",
+    });
+
+    // Real-time socket
+    if (io) {
+      io.emit("USER_NOTIFICATION", {
+        userId:  req.params.userId,
+        message: `📨 Message from ${admin?.name || "Admin"}`,
+        type:    "MESSAGE",
+      });
+    }
+
+    // Email user
+    await sendEmail({
+      to:      targetUser.email,
+      subject: `📨 ${subject || "Message from UHC Academy Admin"}`,
+      html: `
+        <div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;background:#f8fafc;padding:32px;border-radius:16px;border:1px solid #e2e8f0;">
+          <div style="font-size:1.5rem;font-weight:900;background:linear-gradient(135deg,#4255ff,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:16px;">UHC Academy</div>
+          <h2 style="color:#0f172a;margin:0 0 4px;">📨 Message from Admin</h2>
+          <p style="color:#64748b;font-size:.85rem;margin-bottom:20px;">Hi <strong>${targetUser.name}</strong>, you have a new message from ${admin?.name || "the admin team"}.</p>
+          <div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:20px;color:#334155;line-height:1.6;">
+            ${messageText.trim().replace(/\n/g, "<br>")}
+          </div>
+          <a href="https://uhcacadamy.com/profile" style="display:inline-block;margin-top:20px;padding:12px 24px;background:linear-gradient(135deg,#4255ff,#8b5cf6);color:white;border-radius:10px;text-decoration:none;font-weight:700;">View in App →</a>
+        </div>
+      `,
+    });
+
+    res.json({ message: "Message sent to user" });
+  } catch (err) {
+    console.error("message-user error:", err);
+    res.status(500).json({ message: "Failed to send message" });
   }
 });
 
