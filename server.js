@@ -386,3 +386,90 @@ async function emitAdminStats() {
   io.emit("ADMIN_STATS_UPDATE", stats);
 }
 
+// =========================
+// DAILY LOGIN-REMINDER EMAIL
+// Checks every 30 min; fires once per day at 8:00-8:30 AM UTC
+// =========================
+let _lastDailyEmailDate = null;
+
+function buildDailyReminderEmail(user, frontend) {
+  const name    = (user.name || "").split(" ")[0] || "there";
+  const streak  = user.streak  || 0;
+  const points  = user.points  || 0;
+  const streakBlock = streak > 0
+    ? `<div style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(239,68,68,.08));border:1.5px solid #f59e0b;border-radius:14px;padding:16px;margin-bottom:20px;text-align:center">
+         <div style="font-size:1.8rem">🔥</div>
+         <strong style="color:#d97706;display:block;font-size:1.1rem">${streak}-Day Streak!</strong>
+         <span style="color:#92400e;font-size:.8rem">Log in today to keep it going</span>
+       </div>`
+    : "";
+  return `
+<div style="font-family:Inter,sans-serif;max-width:560px;margin:auto;background:#f8fafc;padding:40px 32px;border-radius:20px;border:1px solid #e2e8f0">
+  <div style="text-align:center;margin-bottom:24px">
+    <div style="font-size:2rem;font-weight:900;background:linear-gradient(135deg,#10b981,#0ea5e9);-webkit-background-clip:text;-webkit-text-fill-color:transparent">UHC Academy</div>
+    <div style="font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:#94a3b8">Universal Health Community</div>
+  </div>
+  <div style="font-size:2.5rem;text-align:center;margin-bottom:6px">📚</div>
+  <h2 style="color:#0f172a;text-align:center;margin:0 0 8px">Hi ${name}, ready to learn today?</h2>
+  <p style="color:#475569;text-align:center;margin:0 0 22px;line-height:1.5">You haven't logged in yet today. Keep your momentum going and climb the leaderboard!</p>
+  ${streakBlock}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+    <div style="background:#fff;border-radius:12px;padding:14px;text-align:center;border:1px solid #e2e8f0">
+      <div style="font-size:1.6rem;font-weight:900;color:#4255ff">${points}</div>
+      <div style="font-size:.72rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Total Points</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:14px;text-align:center;border:1px solid #e2e8f0">
+      <div style="font-size:1.6rem;font-weight:900;color:#f59e0b">${streak}</div>
+      <div style="font-size:.72rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Day Streak</div>
+    </div>
+  </div>
+  <a href="${frontend}/quiz" style="display:block;padding:14px 32px;background:linear-gradient(135deg,#4255ff,#8b5cf6);color:white;border-radius:12px;text-decoration:none;font-weight:700;font-size:1rem;text-align:center;margin-bottom:12px">
+    🎯 Start Today's Quiz →
+  </a>
+  <a href="${frontend}/leaderboard" style="display:block;padding:12px;background:#f1f5f9;color:#4255ff;border-radius:12px;text-decoration:none;font-weight:600;font-size:.88rem;text-align:center">
+    🏆 View Leaderboard
+  </a>
+  <p style="color:#94a3b8;font-size:0.72rem;margin:24px 0 0;text-align:center">
+    You're receiving this daily reminder as a UHC Academy member.<br>
+    Log in to manage your email preferences.
+  </p>
+</div>`;
+}
+
+setInterval(async () => {
+  const now      = new Date();
+  const utcH     = now.getUTCHours();
+  const todayStr = now.toISOString().split("T")[0];
+  if (utcH !== 8 || _lastDailyEmailDate === todayStr) return; // only 8 AM UTC, once per day
+  _lastDailyEmailDate = todayStr;
+
+  try {
+    const todayStart = new Date(todayStr + "T00:00:00Z");
+    const { sendEmail } = require("./utils/mail");
+    const FRONTEND = process.env.FRONTEND_URL || "https://uhcacadamy.com";
+
+    const inactiveUsers = await User.find({
+      status: "active",
+      role:   { $in: ["user", "tutor", "health_worker"] },
+      email:  { $exists: true, $ne: "" },
+      $or: [
+        { lastLogin: { $lt: todayStart } },
+        { lastLogin: null },
+      ],
+    }).select("name email points streak").lean();
+
+    let sent = 0;
+    for (const u of inactiveUsers) {
+      await sendEmail({
+        to:      u.email,
+        subject: `🔔 ${(u.name || "").split(" ")[0] || "Hey"}, your daily study reminder — UHC Academy`,
+        html:    buildDailyReminderEmail(u, FRONTEND),
+      });
+      sent++;
+      if (sent % 50 === 0) await new Promise(r => setTimeout(r, 1000)); // rate-limit
+    }
+    console.log(`✅ Daily reminder sent to ${sent} inactive users`);
+  } catch (err) {
+    console.error("Daily email scheduler error:", err.message);
+  }
+}, 30 * 60 * 1000); // check every 30 minutes
