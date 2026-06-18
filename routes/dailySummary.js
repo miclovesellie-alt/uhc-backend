@@ -44,16 +44,26 @@ router.get('/', authMiddleware, adminOnly, async (req, res) => {
     const reportedDetails = await Question.find({ isReported: true, updatedAt: { $gte: start, $lte: end } })
       .select('question course reportReason updatedAt').limit(15);
 
-    /* ─ user logins: group by userId ─ */
-    const loginLogs = todayLogs.filter(l => l.action === 'USER_LOGIN' && l.admin);
+    /* ─ user logins: group by userId ─
+       Bug 2 fix: use DB count for accurate total (populate can return null
+       for deleted users, causing in-memory array to undercount).
+       Bug 3 fix: fall back to log.targetId when admin is null after populate. ─ */
+    const loginCount = await AdminLog.countDocuments({ action: 'USER_LOGIN', createdAt: { $gte: start, $lte: end } });
+    const loginLogs  = todayLogs.filter(l => l.action === 'USER_LOGIN');
     const byUser = {};
 
     for (const log of loginLogs) {
-      const uid = log.admin?._id?.toString();
+      // Prefer populated admin object; fall back to targetId for deleted accounts
+      const uid  = log.admin?._id?.toString() || log.targetId?.toString();
       if (!uid) continue;
       if (!byUser[uid]) {
         byUser[uid] = {
-          user: { _id: uid, name: log.admin.name, email: log.admin.email, role: log.admin.role },
+          user: {
+            _id:   uid,
+            name:  log.admin?.name  || 'Deleted User',
+            email: log.admin?.email || '',
+            role:  log.admin?.role  || 'user',
+          },
           loginCount: 0,
           loginTimes: [],
           quiz: 0, quizCourses: [], notes: 0, flashcards: 0,
@@ -65,15 +75,21 @@ router.get('/', authMiddleware, adminOnly, async (req, res) => {
     }
 
     /* ─ enrich with activity ─ */
-    const activityTypes = ['QUIZ_SUBMITTED','QUIZ_COMPLETE','NOTE_READ','NOTE_OPENED',
+    const activityTypes = ['QUIZ_SUBMITTED','QUIZ_COMPLETE','QUIZ_COMPLETED','NOTE_READ','NOTE_OPENED',
       'STUDY_NOTE_ACCESSED','FLASHCARD_VIEWED','FLASHCARD_OPENED','FLASHCARD_SESSION'];
 
-    for (const log of todayLogs.filter(l => activityTypes.includes(l.action) && l.admin)) {
-      const uid = log.admin?._id?.toString();
+    for (const log of todayLogs.filter(l => activityTypes.includes(l.action))) {
+      // Fall back to targetId when admin is null after populate (Bug 3 fix)
+      const uid  = log.admin?._id?.toString() || log.targetId?.toString();
       if (!uid) continue;
       if (!byUser[uid]) {
         byUser[uid] = {
-          user: { _id: uid, name: log.admin.name, email: log.admin.email, role: log.admin.role },
+          user: {
+            _id:   uid,
+            name:  log.admin?.name  || 'Deleted User',
+            email: log.admin?.email || '',
+            role:  log.admin?.role  || 'user',
+          },
           loginCount: 0, loginTimes: [],
           quiz: 0, quizCourses: [], notes: 0, flashcards: 0, requestedReset: false,
         };
@@ -90,8 +106,30 @@ router.get('/', authMiddleware, adminOnly, async (req, res) => {
 
     /* ─ mark reset users ─ */
     for (const log of resetLogs) {
-      const uid = log.admin?._id?.toString();
+      const uid = log.admin?._id?.toString() || log.targetId?.toString();
       if (uid && byUser[uid]) byUser[uid].requestedReset = true;
+    }
+
+    /* ─ fallback: users seen via User.lastLogin but missing from AdminLog ─
+       Catches gaps caused by failed log writes (e.g. Google-OAuth login
+       where the AdminLog creation silently threw). ─ */
+    const loginFallback = await User.find({
+      lastLogin: { $gte: start, $lte: end },
+      role: { $in: ['user', 'tutor', 'health_worker'] },
+    }).select('_id name email role lastLogin').lean();
+
+    for (const u of loginFallback) {
+      const uid = u._id.toString();
+      if (!byUser[uid]) {
+        byUser[uid] = {
+          user: { _id: uid, name: u.name, email: u.email, role: u.role },
+          loginCount: 1,
+          loginTimes: [u.lastLogin],
+          quiz: 0, quizCourses: [], notes: 0, flashcards: 0,
+          requestedReset: false,
+          fromLastLogin: true,   // flag: sourced from User.lastLogin, not AdminLog
+        };
+      }
     }
 
     const userActivity = Object.values(byUser);
@@ -138,7 +176,7 @@ router.get('/', authMiddleware, adminOnly, async (req, res) => {
     res.json({
       date: new Date().toISOString(),
       signups:          { count: signupCount, yesterday: ySign, users: newUsers },
-      logins:           { count: loginLogs.length, yesterday: yLogin, unique: userActivity.length },
+      logins:           { count: loginCount, yesterday: yLogin, unique: userActivity.length },
       passwordResets:   { count: resetLogs.length, yesterday: yReset, details: resetLogs.map(l=>({ user: l.admin?.name||'Unknown', email: l.admin?.email||'', time: l.createdAt, action: l.action })) },
       reportedQuestions:{ count: reportedCount, yesterday: yReport, details: reportedDetails },
       userActivity,
