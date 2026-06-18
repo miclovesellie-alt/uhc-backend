@@ -204,12 +204,39 @@ router.post("/login", async (req, res) => {
     // Add login point (Max 1 per 24 hours)
     const now = new Date();
     const lastPoint = user.lastLoginPointDate;
+    let gainedPoint = false;
 
     if (!lastPoint || (now - lastPoint) >= 24 * 60 * 60 * 1000) {
       user.points = (user.points || 0) + 1;
       user.lastLoginPointDate = now;
+      gainedPoint = true;
     }
     await user.save();
+
+    // ── Compute leaderboard rank (non-critical, best-effort) ──
+    let leaderboardRank = null;
+    let overtook = 0;
+    if (!['admin', 'superadmin'].includes(user.role)) {
+      try {
+        const aboveCount = await User.countDocuments({
+          points:  { $gt: user.points },
+          role:    { $in: ['user', 'tutor', 'health_worker'] },
+          status:  'active',
+          _id:     { $ne: user._id },
+        });
+        leaderboardRank = aboveCount + 1;
+
+        if (gainedPoint && user.points > 1) {
+          // Count users who are now tied at the user's new score (they were ahead before +1)
+          overtook = await User.countDocuments({
+            points: user.points,
+            role:   { $in: ['user', 'tutor', 'health_worker'] },
+            status: 'active',
+            _id:    { $ne: user._id },
+          });
+        }
+      } catch { /* non-critical — never block login */ }
+    }
 
     // Notify Admins of User Login
     if (!['admin', 'superadmin'].includes(user.role)) {
@@ -224,15 +251,21 @@ router.post("/login", async (req, res) => {
     // Log Activity if Admin
     if (['admin', 'superadmin'].includes(user.role)) {
       await createAdminActivity(
-        user._id, 
-        'ADMIN_LOGIN', 
-        `${user.name} logged in (Admin)`, 
+        user._id,
+        'ADMIN_LOGIN',
+        `${user.name} logged in (Admin)`,
         { type: 'User', id: user._id, details: { name: user.name, role: user.role }, notifType: 'SUCCESS' }
       );
     }
 
-    // Return full user object including role so frontend can redirect admins
-    res.json({ token, user: { ...user.toObject(), password: undefined } });
+    // Return full user object + rank metadata
+    res.json({
+      token,
+      user:            { ...user.toObject(), password: undefined },
+      leaderboardRank,
+      overtook,
+      gainedPoint,
+    });
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error" });
