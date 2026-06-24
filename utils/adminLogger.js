@@ -61,8 +61,9 @@ const createAdminActivity = async (adminId, action, message, targetInfo = {}) =>
  * @param {string} action - Action identifier (e.g. 'USER_LOGIN')
  * @param {string} message - Human readable message
  * @param {string} type - Notification type (INFO, WARNING, DANGER)
+ * @param {Object} details - Optional extra data (e.g. { course, questionsAnswered })
  */
-const createUserActivityLog = async (userId, action, message, type = 'INFO') => {
+const createUserActivityLog = async (userId, action, message, type = 'INFO', details = {}) => {
     try {
         // 1. Create the Log (reuse AdminLog schema for all activity feed)
         const log = new AdminLog({
@@ -70,7 +71,7 @@ const createUserActivityLog = async (userId, action, message, type = 'INFO') => 
             action: action,
             targetType: 'user',
             targetId: userId,
-            details: {}
+            details: details
         });
         await log.save();
 

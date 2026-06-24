@@ -48,13 +48,12 @@ router.delete("/:id", authMiddleware, adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET leaderboard — top 20 users by points
+// GET leaderboard — all users by points (no limit)
 router.get("/leaderboard", async (req, res) => {
   try {
     const users = await User.find({ role: "user", status: "active" })
       .select("name points streak category country")
-      .sort({ points: -1 })
-      .limit(20);
+      .sort({ points: -1 });
     res.json(users);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
