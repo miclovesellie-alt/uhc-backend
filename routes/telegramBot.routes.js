@@ -7,16 +7,49 @@ const TelegramBotLog    = require("../models/TelegramBotLog");
 const botManager = require("../bot/telegramBot");
 
 // ─── GET /api/admin/telegram-bot/status ────────────────────────────────────
-// Returns: { running, startedAt, token (masked), enabled }
+// Returns: { running, startedAt, token, maskedToken, enabled }
 router.get("/status", authMiddleware, adminOnly, async (req, res) => {
   try {
-    const config = await TelegramBotConfig.findById("singleton") || {};
-    const { running, startedAt } = botManager.getStatus();
-    const maskedToken = config.token
-      ? config.token.slice(0, 8) + "•".repeat(Math.max(0, config.token.length - 14)) + config.token.slice(-6)
+    let config = await TelegramBotConfig.findById("singleton");
+
+    // Auto-bootstrap from TELEGRAM_BOT_TOKEN env var if DB config doesn't have token
+    if ((!config || !config.token) && process.env.TELEGRAM_BOT_TOKEN) {
+      config = await TelegramBotConfig.findOneAndUpdate(
+        { _id: "singleton" },
+        { $set: { token: process.env.TELEGRAM_BOT_TOKEN, enabled: true, startedAt: new Date() } },
+        { upsert: true, new: true }
+      );
+    }
+
+    if (!config) config = {};
+
+    let { running, startedAt } = botManager.getStatus();
+
+    // Auto-recover: If config specifies enabled & token exists, but bot isn't currently running, start it!
+    if (!running && config.enabled && config.token) {
+      console.log("[TelegramBot] Auto-starting bot from /status request...");
+      await botManager.restart(config.token);
+      const updated = botManager.getStatus();
+      running = updated.running;
+      startedAt = updated.startedAt;
+    }
+
+    const tokenStr = config.token || "";
+    const maskedToken = tokenStr
+      ? (tokenStr.length > 14
+          ? tokenStr.slice(0, 8) + "•".repeat(tokenStr.length - 14) + tokenStr.slice(-6)
+          : tokenStr)
       : "";
-    res.json({ running, startedAt, enabled: config.enabled || false, maskedToken });
+
+    res.json({
+      running,
+      startedAt,
+      enabled: config.enabled || false,
+      token: tokenStr,
+      maskedToken,
+    });
   } catch (err) {
+    console.error("[BotRoute] status error:", err);
     res.status(500).json({ message: "Failed to fetch bot status" });
   }
 });
