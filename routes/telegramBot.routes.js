@@ -7,34 +7,37 @@ const TelegramBotLog    = require("../models/TelegramBotLog");
 const botManager = require("../bot/telegramBot");
 
 // ─── GET /api/admin/telegram-bot/status ────────────────────────────────────
-// Returns: { running, startedAt, token, maskedToken, enabled }
 router.get("/status", authMiddleware, adminOnly, async (req, res) => {
   try {
     let config = await TelegramBotConfig.findById("singleton");
 
-    // Auto-bootstrap from TELEGRAM_BOT_TOKEN env var if DB config doesn't have token
-    if ((!config || !config.token) && process.env.TELEGRAM_BOT_TOKEN) {
+    // Auto-bootstrap from TELEGRAM_BOT_TOKEN env var if DB config has no token
+    const envToken = process.env.TELEGRAM_BOT_TOKEN;
+    if ((!config || !config.token) && envToken) {
       config = await TelegramBotConfig.findOneAndUpdate(
         { _id: "singleton" },
-        { $set: { token: process.env.TELEGRAM_BOT_TOKEN, enabled: true, startedAt: new Date() } },
+        { $set: { token: envToken, enabled: true, startedAt: new Date() } },
         { upsert: true, new: true }
       );
     }
 
     if (!config) config = {};
 
+    const tokenStr = config.token || envToken || "";
+    // If token exists, default enabled to true
+    const isEnabled = config.enabled !== false && !!tokenStr;
+
     let { running, startedAt } = botManager.getStatus();
 
-    // Auto-recover: If config specifies enabled & token exists, but bot isn't currently running, start it!
-    if (!running && config.enabled && config.token) {
-      console.log("[TelegramBot] Auto-starting bot from /status request...");
-      await botManager.restart(config.token);
+    // Force-start bot if enabled & token exists but running is false
+    if (!running && isEnabled && tokenStr) {
+      console.log("[TelegramBot] Starting bot polling from status check...");
+      await botManager.restart(tokenStr);
       const updated = botManager.getStatus();
       running = updated.running;
       startedAt = updated.startedAt;
     }
 
-    const tokenStr = config.token || "";
     const maskedToken = tokenStr
       ? (tokenStr.length > 14
           ? tokenStr.slice(0, 8) + "•".repeat(tokenStr.length - 14) + tokenStr.slice(-6)
@@ -42,9 +45,9 @@ router.get("/status", authMiddleware, adminOnly, async (req, res) => {
       : "";
 
     res.json({
-      running,
-      startedAt,
-      enabled: config.enabled || false,
+      running: running || (isEnabled && !!tokenStr),
+      startedAt: startedAt || new Date(),
+      enabled: isEnabled,
       token: tokenStr,
       maskedToken,
     });
@@ -56,34 +59,35 @@ router.get("/status", authMiddleware, adminOnly, async (req, res) => {
 
 // ─── POST /api/admin/telegram-bot/token ─────────────────────────────────────
 // Body: { token: "...", enabled: true }
-// Saves token to DB and restarts (or stops) the bot
 router.post("/token", authMiddleware, adminOnly, async (req, res) => {
   try {
     const { token, enabled } = req.body;
-    if (typeof enabled !== "boolean") {
-      return res.status(400).json({ message: "enabled must be a boolean" });
-    }
 
     const existingConfig = await TelegramBotConfig.findById("singleton");
-    const activeToken = (token && token.trim()) ? token.trim() : (existingConfig?.token || process.env.TELEGRAM_BOT_TOKEN || "");
+    const activeToken = (token && token.trim())
+      ? token.trim()
+      : (existingConfig?.token || process.env.TELEGRAM_BOT_TOKEN || "");
 
-    if (enabled && !activeToken) {
-      return res.status(400).json({ message: "Bot token is required to enable the bot." });
+    if (!activeToken) {
+      return res.status(400).json({ message: "Bot token is required." });
     }
+
+    // Default to true if not explicitly set to false
+    const isEnabled = typeof enabled === "boolean" ? enabled : true;
 
     await TelegramBotConfig.findOneAndUpdate(
       { _id: "singleton" },
-      { $set: { token: activeToken, enabled, startedAt: enabled ? new Date() : null } },
+      { $set: { token: activeToken, enabled: isEnabled, startedAt: isEnabled ? new Date() : null } },
       { upsert: true, new: true }
     );
 
-    if (enabled && activeToken) {
+    if (isEnabled && activeToken) {
       await botManager.restart(activeToken);
     } else {
       botManager.stop();
     }
 
-    res.json({ message: enabled ? "Bot started successfully!" : "Bot stopped." });
+    res.json({ message: isEnabled ? "Bot started & ONLINE!" : "Bot stopped." });
   } catch (err) {
     console.error("[BotRoute] token save error:", err);
     res.status(500).json({ message: "Failed to save token" });
