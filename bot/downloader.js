@@ -41,8 +41,6 @@ async function downloadMedia(url, format = "video") {
     noPlaylist: true,
     noWarnings: true,
     output: outputTemplate,
-    dumpSingleJson: false,
-    printJson: true,
   };
 
   let options;
