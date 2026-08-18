@@ -239,26 +239,42 @@ const botManager = {
   stop: stopBot,
 };
 
-// ─── Auto-start on server boot if token exists in DB ─────────────────────────
+// ─── Auto-start on server boot ──────────────────────────────────────────────
 (async () => {
   try {
-    // Wait for mongoose connection to be ready (retry a few times)
+    // Wait up to 20s for mongoose connection
+    const mongoose = require("mongoose");
     for (let i = 0; i < 10; i++) {
-      const mongoose = require("mongoose");
       if (mongoose.connection.readyState === 1) break;
       await new Promise(r => setTimeout(r, 2000));
     }
 
     let config = await TelegramBotConfig.findById("singleton");
+
+    // ── Env var bootstrap: if TELEGRAM_BOT_TOKEN is set and DB has no token, save it ──
+    const envToken = process.env.TELEGRAM_BOT_TOKEN;
+    if (envToken && (!config || !config.token)) {
+      config = await TelegramBotConfig.findOneAndUpdate(
+        { _id: "singleton" },
+        { $set: { token: envToken, enabled: true, startedAt: new Date() } },
+        { upsert: true, new: true }
+      );
+      console.log("[TelegramBot] 🔑 Token loaded from TELEGRAM_BOT_TOKEN env var — saved to DB.");
+    }
+
     if (!config) {
-      config = await TelegramBotConfig.create({ _id: "singleton", token: "", enabled: false });
+      config = await TelegramBotConfig.findOneAndUpdate(
+        { _id: "singleton" },
+        { $setOnInsert: { token: "", enabled: false } },
+        { upsert: true, new: true }
+      );
     }
 
     if (config.token && config.enabled) {
-      console.log("[TelegramBot] 🔑 Token found in DB — auto-starting bot…");
+      console.log("[TelegramBot] ✅ Starting bot…");
       startBot(config.token);
     } else {
-      console.log("[TelegramBot] ℹ️  No token configured. Add one in the admin panel.");
+      console.log("[TelegramBot] ℹ️  No token configured. Set TELEGRAM_BOT_TOKEN env var or add one in the admin panel.");
     }
   } catch (err) {
     console.error("[TelegramBot] Auto-start error:", err.message);
