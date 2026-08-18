@@ -30,6 +30,7 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pdf-parse": "^1.1.1",
+    "rahad-all-downloader-v2": "^2.0.3",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.12.0",
     "resend": "^6.12.3",
