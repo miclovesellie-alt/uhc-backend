@@ -31,19 +31,26 @@ router.post("/token", authMiddleware, adminOnly, async (req, res) => {
       return res.status(400).json({ message: "enabled must be a boolean" });
     }
 
+    const existingConfig = await TelegramBotConfig.findById("singleton");
+    const activeToken = (token && token.trim()) ? token.trim() : (existingConfig?.token || process.env.TELEGRAM_BOT_TOKEN || "");
+
+    if (enabled && !activeToken) {
+      return res.status(400).json({ message: "Bot token is required to enable the bot." });
+    }
+
     await TelegramBotConfig.findOneAndUpdate(
       { _id: "singleton" },
-      { $set: { token: token || "", enabled, startedAt: enabled ? new Date() : null } },
+      { $set: { token: activeToken, enabled, startedAt: enabled ? new Date() : null } },
       { upsert: true, new: true }
     );
 
-    if (enabled && token) {
-      await botManager.restart(token);
+    if (enabled && activeToken) {
+      await botManager.restart(activeToken);
     } else {
       botManager.stop();
     }
 
-    res.json({ message: enabled ? "Bot started!" : "Bot stopped." });
+    res.json({ message: enabled ? "Bot started successfully!" : "Bot stopped." });
   } catch (err) {
     console.error("[BotRoute] token save error:", err);
     res.status(500).json({ message: "Failed to save token" });
