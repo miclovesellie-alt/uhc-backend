@@ -7,6 +7,7 @@
  */
 
 const TelegramBot     = require("node-telegram-bot-api");
+const crypto          = require("crypto");
 const TelegramBotUser = require("../models/TelegramBotUser");
 const TelegramBotLog  = require("../models/TelegramBotLog");
 const TelegramBotConfig = require("../models/TelegramBotConfig");
@@ -159,49 +160,71 @@ function startBot(token) {
       );
     });
 
+    // ── Store for link IDs (keeps callback_data under 64 bytes) ──────────────
+    const pendingLinks = new Map();
+
     // ── Any message with a URL ────────────────────────────────────────────────
     bot.on("message", async (msg) => {
-      if (!msg.text || msg.text.startsWith("/")) return;
+      try {
+        if (!msg.text || msg.text.startsWith("/")) return;
 
-      const urls = msg.text.match(URL_REGEX) || [];
-      const supported = urls.filter(isSupportedUrl);
+        const urls = msg.text.match(URL_REGEX) || [];
+        const supported = urls.filter(isSupportedUrl);
 
-      if (supported.length === 0) {
-        // Only reply if it looks like they tried to send a link
-        if (urls.length > 0) {
-          await bot.sendMessage(msg.chat.id,
-            `🤔 I don't recognize that platform yet.\nSupported: TikTok, Instagram, YouTube, Twitter/X, Reddit, Pinterest, Facebook, Snapchat, Vimeo.`
-          );
+        if (supported.length === 0) {
+          if (urls.length > 0) {
+            await bot.sendMessage(msg.chat.id,
+              `🤔 I don't recognize that platform yet.\nSupported: TikTok, Instagram, YouTube, Twitter/X, Reddit, Pinterest, Facebook, Snapchat, Vimeo.`
+            );
+          }
+          return;
         }
-        return;
+
+        const url = supported[0];
+        const linkId = crypto.randomBytes(4).toString("hex");
+        pendingLinks.set(linkId, url);
+
+        // Auto-expire link after 1 hour
+        setTimeout(() => pendingLinks.delete(linkId), 3600000);
+
+        const keyboard = {
+          inline_keyboard: [[
+            { text: "🎬 Video (MP4)", callback_data: `v:${linkId}` },
+            { text: "🎵 Audio (MP3)", callback_data: `a:${linkId}` },
+          ]],
+        };
+
+        await bot.sendMessage(msg.chat.id,
+          `🔗 *Link detected!*\nWhat do you want?`,
+          { reply_markup: keyboard, parse_mode: "Markdown" }
+        );
+      } catch (msgErr) {
+        console.error("[TelegramBot] message handler error:", msgErr.message);
       }
-
-      const url = supported[0];
-      const keyboard = {
-        inline_keyboard: [[
-          { text: "🎬 Video (MP4)", callback_data: `video|${url}` },
-          { text: "🎵 Audio (MP3)", callback_data: `audio|${url}` },
-        ]],
-      };
-
-      await bot.sendMessage(msg.chat.id,
-        `🔗 *Link detected!*\nWhat do you want?`,
-        { reply_markup: keyboard, parse_mode: "Markdown" }
-      );
     });
 
     // ── Inline button callbacks ───────────────────────────────────────────────
     bot.on("callback_query", async (query) => {
-      const [format, url] = query.data.split("|");
-      if (!["video", "audio"].includes(format) || !url) return;
+      try {
+        const [type, linkId] = (query.data || "").split(":");
+        const format = type === "v" ? "video" : type === "a" ? "audio" : null;
+        const url = pendingLinks.get(linkId);
 
-      await bot.answerCallbackQuery(query.id, { text: "⏳ Starting download…" });
-      await handleDownload(query.message.chat.id, query.from, url, format);
+        if (!format || !url) {
+          await bot.answerCallbackQuery(query.id, { text: "⚠️ Link expired or invalid. Please paste the link again." });
+          return;
+        }
+
+        await bot.answerCallbackQuery(query.id, { text: "⏳ Starting download…" });
+        await handleDownload(query.message.chat.id, query.from, url, format);
+      } catch (cbErr) {
+        console.error("[TelegramBot] callback_query error:", cbErr.message);
+      }
     });
 
     // ── Polling errors ────────────────────────────────────────────────────────
     bot.on("polling_error", (err) => {
-      console.error("[TelegramBot] Polling error:", err.message);
+      console.error("[TelegramBot] Polling warning:", err.message || err);
       if (err.message?.includes("401") || err.message?.includes("Unauthorized")) {
         console.error("[TelegramBot] ❌ Invalid token — stopping bot.");
         stopBot();
