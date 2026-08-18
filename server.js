@@ -36,6 +36,7 @@ const socialRoutes = require("./routes/social.routes");
 const submissionsRoutes = require("./routes/submissions");
 const studyHubRoutes    = require("./routes/studyhub.routes");
 const institutionRoutes = require("./routes/institution.routes");
+const telegramBotRoutes = require("./routes/telegramBot.routes");
 
 // =========================
 // IMPORT MODELS
@@ -166,6 +167,7 @@ safeUse("/api/admin/daily-summary",  dailySummaryRoutes);
 safeUse("/api/user/notifications", userNotificationsRoutes);
 safeUse("/api/studyhub",           studyHubRoutes);
 safeUse("/api/institutions",       institutionRoutes);
+safeUse("/api/admin/telegram-bot", telegramBotRoutes);
 
 // =========================
 // COURSES ROUTES
@@ -295,7 +297,13 @@ app.get("/", (req, res) => res.send("Universal Health API running"));
 // =========================
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
+  .then(() => {
+    console.log("MongoDB connected");
+    // =========================
+    // START TELEGRAM BOT
+    // =========================
+    require("./bot/telegramBot");
+  })
   .catch((err) => console.error("MongoDB error:", err));
 
 // =========================
