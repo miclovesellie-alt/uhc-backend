@@ -147,36 +147,50 @@ async function generateAIResponse(prompt, systemInstruction = SYSTEM_PROMPT_STUD
   }
 
   let lastExhaustedName = null;
-  let failoverMessage = null;
+  let failoverMessage   = null;
+  let quotaHitCount     = 0;   // how many providers actually hit their rate/quota limit
 
   for (let i = 0; i < providers.length; i++) {
     const { id, fn, key } = providers[i];
     try {
       const result = await fn(prompt, systemInstruction, key);
-      // If we switched providers, build a friendly failover message
+      // Build a friendly notice if we had to switch providers due to quota
       if (lastExhaustedName) {
-        failoverMessage = `🔄 Your ${lastExhaustedName} tokens ran out — don't worry, we've switched you to ${PROVIDER_NAMES[id]} automatically to keep your session going!`;
+        failoverMessage = `🔄 Your ${lastExhaustedName} tokens ran out — don't worry, we switched you to ${PROVIDER_NAMES[id]} automatically!`;
       }
       return { ...result, failoverMessage, allExhausted: false };
     } catch (err) {
       if (err.quotaExhausted) {
+        quotaHitCount++;
         lastExhaustedName = PROVIDER_NAMES[id];
         console.warn(`[AI] ${id} quota exhausted. Trying next provider...`);
-        // Continue to next provider
       } else {
-        // Non-quota error — still try next
-        console.error(`[AI] ${id} error:`, err.message);
+        // Non-quota error (invalid key, network issue, empty response)
+        // Log it and try next, but don't count as quota exhaustion
+        console.error(`[AI] ${id} non-quota error:`, err.message);
       }
     }
   }
 
-  // All providers exhausted
+  // Only show the subscription wall if at least one provider confirmed
+  // genuine quota exhaustion AND all configured providers have been tried.
+  // If failures were all non-quota (e.g., bad keys), use the offline engine.
+  if (quotaHitCount > 0) {
+    return {
+      text: null,
+      provider: null,
+      failoverMessage: null,
+      allExhausted: true,
+      exhaustedMessage: `🚫 All AI engines have reached their free daily limit. Upgrade to UHC Premium for unlimited access, or come back tomorrow when quotas reset!`
+    };
+  }
+
+  // Fallback: all providers failed for non-quota reasons (bad keys / network)
   return {
-    text: null,
-    provider: null,
-    failoverMessage: null,
-    allExhausted: true,
-    exhaustedMessage: `🚫 You've used up all free AI credits across Google Gemini, Groq, and Claude for today. Upgrade to UHC Premium for unlimited access!`
+    text: generateOfflineFallback(prompt),
+    provider: "UHC Core Engine (Offline)",
+    failoverMessage: "⚠️ AI engines are currently unavailable. Make sure API keys are configured in Admin Settings.",
+    allExhausted: false
   };
 }
 
