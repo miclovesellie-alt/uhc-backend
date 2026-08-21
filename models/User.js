@@ -21,6 +21,10 @@ const userSchema = new mongoose.Schema(
     lastLogin: { type: Date, default: null },
     adminTheme: { type: String, default: "light", enum: ["light", "dark"] },
 
+    // ===== AI Credits =====
+    aiCredits: { type: Number, default: 10 },
+    lastAiCreditReset: { type: Date, default: Date.now },
+
     // ===== Institution (for tutors & health workers) =====
     institution:          { type: mongoose.Schema.Types.ObjectId, ref: "Institution", default: null },
     institutionVerified:  { type: Boolean, default: false },
