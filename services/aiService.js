@@ -1,4 +1,5 @@
 const fetch = globalThis.fetch || require("node-fetch");
+const Settings = require("../models/Settings");
 
 const SYSTEM_PROMPT_STUDY = `You are the UHC AI Study Assistant & Medical Tutor. You help students, healthcare workers, and learners understand medical concepts, public health, nursing, anatomy, and academic subjects. Keep responses clear, accurate, encouraging, and structured with clean markdown formatting.`;
 
@@ -6,8 +7,18 @@ const SYSTEM_PROMPT_STUDY = `You are the UHC AI Study Assistant & Medical Tutor.
  * Send prompt to Google Gemini API or Groq API, falling back gracefully if unconfigured.
  */
 async function generateAIResponse(prompt, systemInstruction = SYSTEM_PROMPT_STUDY) {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
+  let geminiApiKey = process.env.GEMINI_API_KEY;
   const groqApiKey = process.env.GROQ_API_KEY;
+
+  // Fallback to database Settings if env var is missing
+  if (!geminiApiKey || geminiApiKey === "YOUR_GEMINI_API_KEY") {
+    try {
+      const settingDoc = await Settings.findOne({ key: "geminiApiKey" });
+      if (settingDoc && settingDoc.value) {
+        geminiApiKey = settingDoc.value;
+      }
+    } catch (e) {}
+  }
 
   // 1. Google Gemini API
   if (geminiApiKey && geminiApiKey !== "YOUR_GEMINI_API_KEY") {
