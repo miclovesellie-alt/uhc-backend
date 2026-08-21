@@ -3,19 +3,25 @@ const Settings = require("../models/Settings");
 
 const SYSTEM_PROMPT_STUDY = `You are the UHC AI Study Assistant & Medical Tutor. You help students, healthcare workers, and learners understand medical concepts, public health, nursing, anatomy, and academic subjects. Keep responses clear, accurate, encouraging, and structured with clean markdown formatting.`;
 
-// ─── Error codes that indicate quota/rate-limit exhaustion ───────────────────
-const QUOTA_CODES = [429, 503, 529];
+// ─── Error codes that ALWAYS indicate quota/rate-limit exhaustion ────────────
+// These are HTTP status codes universally used for rate limiting
+const QUOTA_STATUS_CODES = [429, 503, 529];
 
 function isQuotaError(status, body) {
-  if (QUOTA_CODES.includes(status)) return true;
+  // 1. Status code check
+  if (QUOTA_STATUS_CODES.includes(status)) return true;
+
+  // 2. Body text check — only very specific quota-related strings
   const txt = JSON.stringify(body || "").toLowerCase();
   return (
-    txt.includes("quota") ||
-    txt.includes("rate_limit") ||
-    txt.includes("rate limit") ||
-    txt.includes("exceeded") ||
-    txt.includes("overloaded") ||
-    txt.includes("insufficient_quota")
+    txt.includes("resource_exhausted")    || // Gemini
+    txt.includes("quota_exceeded")         || // Gemini alt
+    txt.includes("rate_limit_exceeded")    || // Groq / OpenAI
+    txt.includes("insufficient_quota")     || // OpenAI / Claude
+    txt.includes("too many requests")      || // Generic
+    txt.includes("daily limit")            || // Some providers
+    txt.includes("monthly limit")          || // Some providers
+    txt.includes("credit balance is too low") // Claude
   );
 }
 
@@ -170,19 +176,22 @@ async function generateAIResponse(prompt, systemInstruction = SYSTEM_PROMPT_STUD
       const result = await fn(prompt, systemInstruction, key);
       // Build a friendly notice if we had to switch providers due to quota
       if (lastExhaustedName) {
-        failoverMessage = `🔄 Your ${lastExhaustedName} tokens ran out — don't worry, we switched you to ${PROVIDER_NAMES[id]} automatically!`;
+        failoverMessage = `🔄 ${lastExhaustedName} reached its limit — we automatically switched you to ${PROVIDER_NAMES[id]}. Continuing seamlessly!`;
       }
       return { ...result, failoverMessage, allExhausted: false };
     } catch (err) {
       if (err.quotaExhausted) {
+        // Genuine quota/credit exhaustion — count it and move to next
         quotaHitCount++;
         lastExhaustedName = PROVIDER_NAMES[id];
-        console.warn(`[AI] ${id} quota exhausted. Trying next provider...`);
+        console.warn(`[AI Cascade] ${id} quota exhausted → trying next provider...`);
       } else {
-        // Non-quota error (invalid key, network issue, empty response)
-        // Log it and try next, but don't count as quota exhaustion
-        console.error(`[AI] ${id} non-quota error:`, err.message);
+        // Non-quota error (wrong model, network issue, parse error)
+        // Still try the next provider, but don't count as quota
+        console.error(`[AI Cascade] ${id} non-quota error (will try next):`, err.message);
+        // If this was the ONLY provider and it errored non-quota, we'll hit offline
       }
+      // Either way — continue to next provider in cascade
     }
   }
 
