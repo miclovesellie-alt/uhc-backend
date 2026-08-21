@@ -34,28 +34,42 @@ async function getSettingKey(envKey, dbKey) {
 // ─── Provider runner helper ───────────────────────────────────────────────────
 // Returns: { text, provider } on success, or throws { quotaExhausted: true } on quota error
 async function tryGemini(prompt, systemInstruction, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemInstruction }] },
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 1200 }
-    })
-  });
-  const data = await res.json();
+  // Try models in order — different key tiers have access to different models
+  const GEMINI_MODELS = ["gemini-3.6-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"];
 
-  if (isQuotaError(res.status, data)) {
-    const err = new Error("Gemini quota exhausted");
-    err.quotaExhausted = true;
-    throw err;
+  for (const model of GEMINI_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemInstruction }] },
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 1200 }
+      })
+    });
+    const data = await res.json();
+
+    if (isQuotaError(res.status, data)) {
+      const err = new Error("Gemini quota exhausted");
+      err.quotaExhausted = true;
+      throw err;
+    }
+
+    // 404 = model not available for this key tier → try next model
+    if (res.status === 404) {
+      console.warn(`[Gemini] Model ${model} not available, trying next...`);
+      continue;
+    }
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (text) return { text, provider: `Google Gemini (${model})` };
+    throw new Error(`Gemini ${model}: empty response`);
   }
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini: empty response");
-  return { text, provider: "Google Gemini" };
+  throw new Error("Gemini: no working model found for this API key");
 }
+
 
 async function tryGroq(prompt, systemInstruction, apiKey) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -65,7 +79,7 @@ async function tryGroq(prompt, systemInstruction, apiKey) {
       Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
+      model: "qwen/qwen3.6-27b",
       messages: [
         { role: "system", content: systemInstruction },
         { role: "user", content: prompt }
