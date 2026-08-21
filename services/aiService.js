@@ -3,7 +3,23 @@ const Settings = require("../models/Settings");
 
 const SYSTEM_PROMPT_STUDY = `You are the UHC AI Study Assistant & Medical Tutor. You help students, healthcare workers, and learners understand medical concepts, public health, nursing, anatomy, and academic subjects. Keep responses clear, accurate, encouraging, and structured with clean markdown formatting.`;
 
-// Helper to fetch setting from DB if process.env is missing
+// ─── Error codes that indicate quota/rate-limit exhaustion ───────────────────
+const QUOTA_CODES = [429, 503, 529];
+
+function isQuotaError(status, body) {
+  if (QUOTA_CODES.includes(status)) return true;
+  const txt = JSON.stringify(body || "").toLowerCase();
+  return (
+    txt.includes("quota") ||
+    txt.includes("rate_limit") ||
+    txt.includes("rate limit") ||
+    txt.includes("exceeded") ||
+    txt.includes("overloaded") ||
+    txt.includes("insufficient_quota")
+  );
+}
+
+// ─── Fetch a setting: env var first, then MongoDB Settings collection ─────────
 async function getSettingKey(envKey, dbKey) {
   let val = process.env[envKey];
   if (!val || val === `YOUR_${envKey}`) {
@@ -12,164 +28,212 @@ async function getSettingKey(envKey, dbKey) {
       if (doc && doc.value) val = doc.value;
     } catch (e) {}
   }
-  return val;
+  return val || null;
 }
 
+// ─── Provider runner helper ───────────────────────────────────────────────────
+// Returns: { text, provider } on success, or throws { quotaExhausted: true } on quota error
+async function tryGemini(prompt, systemInstruction, apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: systemInstruction }] },
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 1200 }
+    })
+  });
+  const data = await res.json();
+
+  if (isQuotaError(res.status, data)) {
+    const err = new Error("Gemini quota exhausted");
+    err.quotaExhausted = true;
+    throw err;
+  }
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Gemini: empty response");
+  return { text, provider: "Google Gemini" };
+}
+
+async function tryGroq(prompt, systemInstruction, apiKey) {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.7,
+      max_tokens: 1200
+    })
+  });
+  const data = await res.json();
+
+  if (isQuotaError(res.status, data)) {
+    const err = new Error("Groq quota exhausted");
+    err.quotaExhausted = true;
+    throw err;
+  }
+
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Groq: empty response");
+  return { text, provider: "Groq (Llama 3.1)" };
+}
+
+async function tryClaude(prompt, systemInstruction, apiKey) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01"
+    },
+    body: JSON.stringify({
+      model: "claude-3-haiku-20240307",
+      max_tokens: 1200,
+      system: systemInstruction,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  const data = await res.json();
+
+  if (isQuotaError(res.status, data)) {
+    const err = new Error("Claude quota exhausted");
+    err.quotaExhausted = true;
+    throw err;
+  }
+
+  const text = data.content?.[0]?.text;
+  if (!text) throw new Error("Claude: empty response");
+  return { text, provider: "Claude (Haiku)" };
+}
+
+// ─── Provider display names (used in failover messages) ──────────────────────
+const PROVIDER_NAMES = {
+  gemini: "Google Gemini",
+  groq: "Groq (Llama 3.1)",
+  claude: "Claude AI"
+};
+
 /**
- * Send prompt with automatic multi-AI provider cascading failover.
- * Order: Google Gemini -> Groq (Llama 3) -> Mistral AI -> Hugging Face -> Offline Smart Fallback
+ * Core engine: cascade through Gemini → Groq → Claude.
+ * Returns { text, provider, failoverMessage?, allExhausted? }
  */
 async function generateAIResponse(prompt, systemInstruction = SYSTEM_PROMPT_STUDY) {
-  const geminiApiKey = await getSettingKey("GEMINI_API_KEY", "geminiApiKey");
-  const groqApiKey = await getSettingKey("GROQ_API_KEY", "groqApiKey");
-  const mistralApiKey = await getSettingKey("MISTRAL_API_KEY", "mistralApiKey");
-  const huggingfaceApiKey = await getSettingKey("HUGGINGFACE_API_KEY", "huggingfaceApiKey");
+  const geminiKey = await getSettingKey("GEMINI_API_KEY", "geminiApiKey");
+  const groqKey   = await getSettingKey("GROQ_API_KEY",   "groqApiKey");
+  const claudeKey = await getSettingKey("CLAUDE_API_KEY", "claudeApiKey");
 
-  // Provider 1: Google Gemini API
-  if (geminiApiKey && geminiApiKey !== "YOUR_GEMINI_API_KEY") {
+  const providers = [];
+  if (geminiKey) providers.push({ id: "gemini", fn: tryGemini, key: geminiKey });
+  if (groqKey)   providers.push({ id: "groq",   fn: tryGroq,   key: groqKey });
+  if (claudeKey) providers.push({ id: "claude", fn: tryClaude, key: claudeKey });
+
+  // No providers configured → offline fallback
+  if (providers.length === 0) {
+    return {
+      text: generateOfflineFallback(prompt),
+      provider: "UHC Core Engine (Offline)",
+      failoverMessage: null,
+      allExhausted: false
+    };
+  }
+
+  let lastExhaustedName = null;
+  let failoverMessage = null;
+
+  for (let i = 0; i < providers.length; i++) {
+    const { id, fn, key } = providers[i];
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemInstruction }] },
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
-        })
-      });
-      const data = await response.json();
-      if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-        return {
-          text: data.candidates[0].content.parts[0].text,
-          provider: "Google Gemini 1.5 Flash"
-        };
+      const result = await fn(prompt, systemInstruction, key);
+      // If we switched providers, build a friendly failover message
+      if (lastExhaustedName) {
+        failoverMessage = `🔄 Your ${lastExhaustedName} tokens ran out — don't worry, we've switched you to ${PROVIDER_NAMES[id]} automatically to keep your session going!`;
       }
-      console.warn("Gemini API quota/limit reached or no candidate. Failover to Groq...");
+      return { ...result, failoverMessage, allExhausted: false };
     } catch (err) {
-      console.error("Gemini API Error, failing over to Groq:", err.message);
+      if (err.quotaExhausted) {
+        lastExhaustedName = PROVIDER_NAMES[id];
+        console.warn(`[AI] ${id} quota exhausted. Trying next provider...`);
+        // Continue to next provider
+      } else {
+        // Non-quota error — still try next
+        console.error(`[AI] ${id} error:`, err.message);
+      }
     }
   }
 
-  // Provider 2: Groq API (Llama-3.1 8B)
-  if (groqApiKey && groqApiKey !== "YOUR_GROQ_API_KEY") {
-    try {
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${groqApiKey}`
-        },
-        body: JSON.stringify({
-          model: "llama-3.1-8b-instant",
-          messages: [
-            { role: "system", content: systemInstruction },
-            { role: "user", content: prompt }
-          ],
-          temperature: 0.7
-        })
-      });
-      const data = await response.json();
-      if (data.choices && data.choices[0]?.message?.content) {
-        return {
-          text: data.choices[0].message.content,
-          provider: "Groq (Llama 3.1)"
-        };
-      }
-      console.warn("Groq API quota reached. Failover to Mistral...");
-    } catch (err) {
-      console.error("Groq API Error, failing over to Mistral:", err.message);
-    }
-  }
-
-  // Provider 3: Mistral AI API
-  if (mistralApiKey && mistralApiKey !== "YOUR_MISTRAL_API_KEY") {
-    try {
-      const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${mistralApiKey}`
-        },
-        body: JSON.stringify({
-          model: "mistral-tiny",
-          messages: [
-            { role: "system", content: systemInstruction },
-            { role: "user", content: prompt }
-          ]
-        })
-      });
-      const data = await response.json();
-      if (data.choices && data.choices[0]?.message?.content) {
-        return {
-          text: data.choices[0].message.content,
-          provider: "Mistral AI"
-        };
-      }
-    } catch (err) {
-      console.error("Mistral API Error, failing over to HuggingFace:", err.message);
-    }
-  }
-
-  // Provider 4: Hugging Face Inference API
-  if (huggingfaceApiKey && huggingfaceApiKey !== "YOUR_HUGGINGFACE_API_KEY") {
-    try {
-      const response = await fetch("https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${huggingfaceApiKey}`
-        },
-        body: JSON.stringify({ inputs: `${systemInstruction}\n\nUser: ${prompt}\nAssistant:` })
-      });
-      const data = await response.json();
-      if (Array.isArray(data) && data[0]?.generated_text) {
-        return {
-          text: data[0].generated_text.split("Assistant:")[1] || data[0].generated_text,
-          provider: "Hugging Face Inference"
-        };
-      }
-    } catch (err) {
-      console.error("HuggingFace API Error:", err.message);
-    }
-  }
-
-  // Provider 5: Smart Offline Engine Fallback
+  // All providers exhausted
   return {
-    text: generateOfflineFallback(prompt),
-    provider: "UHC Core AI Engine"
+    text: null,
+    provider: null,
+    failoverMessage: null,
+    allExhausted: true,
+    exhaustedMessage: `🚫 You've used up all free AI credits across Google Gemini, Groq, and Claude for today. Upgrade to UHC Premium for unlimited access!`
   };
 }
 
 /**
- * Offline Smart Fallback for testing & unconfigured API keys
+ * Smart offline response for when no API keys are set
  */
 function generateOfflineFallback(prompt) {
   const lower = prompt.toLowerCase();
-  
-  if (lower.includes("explain option") || lower.includes("why option")) {
-    return `### 💡 AI Answer Breakdown\n\n* **Option Analysis**: The selected option was evaluated based on standard medical/educational reference material.\n* **Core Medical Concept**: Focus on primary symptoms, physiological mechanisms, and clinical guidelines related to this question.\n* **Study Tip**: Review key definitions and compare option lengths and definitions when practicing.\n\n*(Note: Add your free \`GEMINI_API_KEY\` or \`GROQ_API_KEY\` in Admin Settings for live multi-AI response!)*`;
+
+  if (lower.includes("explain") && (lower.includes("option") || lower.includes("answer"))) {
+    return `### 💡 Answer Breakdown\n\n* **Selection Analysis**: Your chosen option was evaluated against standard medical reference material.\n* **Core Concept**: Focus on primary symptoms, mechanisms, and clinical guidelines for this topic.\n* **Study Tip**: Pay attention to option lengths — equal-length options are usually well-balanced.\n\n> 🔑 *Add a free API key in Admin Settings to enable live AI explanations!*`;
   }
 
-  if (lower.includes("shorten") || lower.includes("balance options")) {
+  if (lower.includes("shorten") || lower.includes("balance")) {
     return JSON.stringify({
-      options: [
-        "Concise Option A",
-        "Concise Option B",
-        "Concise Option C",
-        "Concise Option D"
-      ]
+      options: ["Concise Option A", "Concise Option B", "Concise Option C", "Concise Option D"]
     });
   }
 
-  return `### 🤖 UHC AI Study Assistant\n\nThank you for asking: **"${prompt.slice(0, 60)}..."**\n\nHere is a helpful summary:\n* **Core Principle**: Medical and health concepts rely on systematic understanding of fundamentals.\n* **Key Focus**: Always prioritize patient safety, clear evidence, and standard practice guidelines.\n\n> 🔑 *Tip: Provide free API keys in Admin Settings to enable multi-AI failover (Gemini, Groq, Mistral)!*`;
+  return `### 🤖 UHC AI Study Assistant\n\nThank you for your question!\n\n* **Tip**: Medical success relies on systematic, consistent revision.\n* **Focus**: Prioritise patient safety, evidence-based practice, and standard clinical guidelines.\n\n> 🔑 *Configure a free Gemini or Groq API key in Admin Settings to unlock live AI responses!*`;
 }
 
-/**
- * AI Quiz Option Shortener & Balancer
- */
+// ─── Exported service methods ─────────────────────────────────────────────────
+
+/** General chat question */
+exports.askAI = async (question) => {
+  return await generateAIResponse(question);
+};
+
+/** Quiz option explainer */
+exports.explainQuizOption = async (questionText, options, selectedIndex, correctIndex) => {
+  const selectedText = options[selectedIndex] || "None";
+  const correctText  = options[correctIndex]  || "None";
+  const isCorrect    = selectedIndex === correctIndex;
+
+  const prompt = `A student answered a quiz question:
+Question: "${questionText}"
+Option 0: ${options[0]}
+Option 1: ${options[1]}
+Option 2: ${options[2]}
+Option 3: ${options[3]}
+
+Student selected: Option ${selectedIndex} ("${selectedText}") — ${isCorrect ? "CORRECT ✅" : "INCORRECT ❌"}
+Correct answer: Option ${correctIndex} ("${correctText}")
+
+Give a concise 3-part markdown breakdown:
+1. **${isCorrect ? "Why You Got It Right" : "Why This Was Incorrect"}** — 2 clear sentences.
+2. **Correct Concept** — Why Option ${correctIndex} ("${correctText}") is the right medical/academic answer.
+3. **Memory Tip** — One bullet-point mnemonic or memory trick for this concept.`;
+
+  return await generateAIResponse(prompt);
+};
+
+/** Admin: shorten & balance question options */
 exports.shortenAndBalanceOptions = async (questionText, originalOptions, correctAnswerIndex) => {
-  const prompt = `You are an expert medical exam creator. The following multiple-choice question has options that may be unequal in length, making the correct answer obvious.
+  const prompt = `You are an expert medical exam designer. This question has unbalanced answer options that make the correct answer predictable.
+
 Question: "${questionText}"
 Options:
 0: ${originalOptions[0]}
@@ -178,109 +242,62 @@ Options:
 3: ${originalOptions[3]}
 Correct Answer Index: ${correctAnswerIndex}
 
-Task: Rewrite all 4 options so they are CONCISE, equal in word length (5-12 words each), and plausible. Preserve option ${correctAnswerIndex} as the correct answer.
-Return strictly valid JSON format with key "options": array of 4 short strings. Do NOT output markdown code fences or extra text.
-Example format:
-{"options": ["Short opt 0", "Short opt 1", "Short opt 2", "Short opt 3"]}`;
+Rewrite all 4 options to be CONCISE (5–12 words each), equally balanced in length, and all plausible. Keep option ${correctAnswerIndex} as the correct answer.
+Return ONLY valid JSON — no markdown, no code fences, no extra text:
+{"options": ["Short opt 0","Short opt 1","Short opt 2","Short opt 3"]}`;
 
   try {
-    const aiRes = await generateAIResponse(prompt, "You are a JSON-only API that outputs valid JSON object with key 'options'.");
-    const cleaned = (aiRes.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
+    const res = await generateAIResponse(prompt, "You are a JSON-only API. Output valid JSON with key 'options'.");
+    const cleaned = (res.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
-    if (parsed.options && Array.isArray(parsed.options) && parsed.options.length === 4) {
-      return parsed.options;
-    }
-  } catch (err) {
-    console.error("Failed to parse AI option shortener JSON:", err);
+    if (parsed.options?.length === 4) return parsed.options;
+  } catch (e) {
+    console.error("[AI] Option shortener parse error:", e.message);
   }
-
-  return originalOptions.map(opt => (opt.length > 60 ? opt.split(/[,.]/)[0].trim() : opt));
+  return originalOptions.map(o => (o.length > 60 ? o.split(/[,.]/)[0].trim() : o));
 };
 
-/**
- * AI Question Generator from Study Notes
- */
+/** Admin: generate quiz questions from study notes */
 exports.generateQuestionsFromNotes = async (notesText, count = 3, courseName = "General Health") => {
-  const prompt = `You are a medical professor. Read the following study notes and generate ${count} multiple-choice quiz questions for the course "${courseName}".
+  const prompt = `You are a medical professor. Read these study notes and generate ${count} well-structured multiple-choice questions for the course "${courseName}".
 
 Study Notes:
 """
 ${notesText.slice(0, 3000)}
 """
 
-Task: Generate ${count} high-quality questions. Each question must have:
+Each question must include:
 - "question": string
-- "options": array of 4 concise strings (equal length)
-- "answer": integer (0 to 3, index of correct option)
-- "explanation": brief explanation
+- "options": array of 4 concise, equally-balanced strings
+- "answer": integer (0–3, index of correct option)
+- "explanation": brief plain-text explanation
 
-Return strictly valid JSON format with key "questions": array of question objects. Do NOT include markdown formatting.`;
+Return ONLY valid JSON — no markdown, no code fences:
+{"questions": [...]}`;
 
   try {
-    const aiRes = await generateAIResponse(prompt, "You output strictly valid JSON with key 'questions'.");
-    const cleaned = (aiRes.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
+    const res = await generateAIResponse(prompt, "You output strictly valid JSON with key 'questions'.");
+    const cleaned = (res.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
-    if (parsed.questions && Array.isArray(parsed.questions)) {
-      return parsed.questions;
-    }
-  } catch (err) {
-    console.error("Failed to generate questions from notes:", err);
+    if (Array.isArray(parsed.questions)) return parsed.questions;
+  } catch (e) {
+    console.error("[AI] Notes generator parse error:", e.message);
   }
-
   return [];
 };
 
-/**
- * AI Similar Question Generator
- */
-exports.generateSimilarQuestions = async (baseQuestionText, options, answerIndex, count = 2) => {
-  const prompt = `Given this base question: "${baseQuestionText}" (Correct Option: "${options[answerIndex]}"), generate ${count} similar variation questions on the same core concept with 4 short, balanced options.
-Return strictly valid JSON format with key "questions": array of objects having "question", "options" (4 strings), "answer" (0-3 index), and "explanation".`;
+/** Admin: generate similar questions based on an existing one */
+exports.generateSimilarQuestions = async (baseQuestion, options, answerIndex, count = 2) => {
+  const prompt = `Given this base question: "${baseQuestion}" (Correct answer: "${options[answerIndex]}"), generate ${count} variation questions testing the same core concept. Each must have 4 short, balanced options.
+Return ONLY valid JSON: {"questions": [{"question":"...","options":[...],"answer":0,"explanation":"..."}]}`;
 
   try {
-    const aiRes = await generateAIResponse(prompt, "You output strictly valid JSON.");
-    const cleaned = (aiRes.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
+    const res = await generateAIResponse(prompt, "You output strictly valid JSON.");
+    const cleaned = (res.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
-    if (parsed.questions && Array.isArray(parsed.questions)) {
-      return parsed.questions;
-    }
-  } catch (err) {
-    console.error("Failed to generate similar questions:", err);
+    if (Array.isArray(parsed.questions)) return parsed.questions;
+  } catch (e) {
+    console.error("[AI] Similar questions parse error:", e.message);
   }
-
   return [];
-};
-
-/**
- * General Question Answer
- */
-exports.askAI = async (question) => {
-  return await generateAIResponse(question);
-};
-
-/**
- * Explain Quiz Option (Right vs Wrong)
- */
-exports.explainQuizOption = async (questionText, options, selectedIndex, correctIndex) => {
-  const selectedText = options[selectedIndex] || "None";
-  const correctText = options[correctIndex] || "None";
-  const isCorrect = selectedIndex === correctIndex;
-
-  const prompt = `A user took a quiz on this question:
-Question: "${questionText}"
-Option 0: ${options[0]}
-Option 1: ${options[1]}
-Option 2: ${options[2]}
-Option 3: ${options[3]}
-
-User selected: Option ${selectedIndex} ("${selectedText}")
-Correct answer: Option ${correctIndex} ("${correctText}")
-User was: ${isCorrect ? "CORRECT" : "INCORRECT"}
-
-Task: Provide a concise 3-part breakdown in markdown:
-1. **${isCorrect ? "Why Your Answer Is Right" : "Why Your Answer Was Incorrect"}**: Explain in 2 sentences.
-2. **Correct Concept Explanation**: Explain why Option ${correctIndex} ("${correctText}") is the correct medical/educational fact.
-3. **Takeaway Tip**: 1 bullet point memory trick for this concept.`;
-
-  return await generateAIResponse(prompt);
 };

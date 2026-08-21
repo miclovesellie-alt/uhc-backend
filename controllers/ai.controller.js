@@ -99,9 +99,20 @@ exports.askQuestion = async (req, res) => {
       });
     }
 
-    // Call AI Service
+    // Call AI Service (cascade: Gemini → Groq → Claude)
     const aiResult = await aiService.askAI(question);
-    const responseText = typeof aiResult === "string" ? aiResult : aiResult.text;
+
+    // All 3 providers exhausted — return subscription wall response
+    if (aiResult.allExhausted) {
+      return res.status(200).json({
+        success: true,
+        allProvidersExhausted: true,
+        exhaustedMessage: aiResult.exhaustedMessage,
+        remainingCredits: user.aiCredits
+      });
+    }
+
+    const responseText = aiResult.text;
     const providerUsed = aiResult.provider || "Google Gemini";
 
     // Deduct 1 credit
@@ -125,6 +136,7 @@ exports.askQuestion = async (req, res) => {
         provider: providerUsed
       },
       provider: providerUsed,
+      failoverMessage: aiResult.failoverMessage || null,
       remainingCredits: user.aiCredits
     });
   } catch (error) {
@@ -155,21 +167,23 @@ exports.explainQuizQuestion = async (req, res) => {
       });
     }
 
-    const aiResult = await aiService.explainQuizOption(
-      questionText,
-      options,
-      selectedIndex,
-      correctIndex
-    );
+    const aiResult = await aiService.explainQuizOption(questionText, options, selectedIndex, correctIndex);
 
-    const explanationText = typeof aiResult === "string" ? aiResult : aiResult.text;
+    if (aiResult.allExhausted) {
+      return res.status(200).json({
+        success: true,
+        allProvidersExhausted: true,
+        exhaustedMessage: aiResult.exhaustedMessage,
+        remainingCredits: user.aiCredits
+      });
+    }
+
+    const explanationText = aiResult.text;
     const providerUsed = aiResult.provider || "Google Gemini";
 
-    // Deduct 1 credit
     user.aiCredits -= 1;
     await user.save();
 
-    // Log explanation request
     await AIQuestion.create({
       user: req.user?.id || req.userId,
       question: `Quiz Explanation: ${questionText}`,
@@ -182,6 +196,7 @@ exports.explainQuizQuestion = async (req, res) => {
       success: true,
       explanation: explanationText,
       provider: providerUsed,
+      failoverMessage: aiResult.failoverMessage || null,
       remainingCredits: user.aiCredits
     });
   } catch (error) {
