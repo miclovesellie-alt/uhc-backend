@@ -3,24 +3,29 @@ const Settings = require("../models/Settings");
 
 const SYSTEM_PROMPT_STUDY = `You are the UHC AI Study Assistant & Medical Tutor. You help students, healthcare workers, and learners understand medical concepts, public health, nursing, anatomy, and academic subjects. Keep responses clear, accurate, encouraging, and structured with clean markdown formatting.`;
 
-/**
- * Send prompt to Google Gemini API or Groq API, falling back gracefully if unconfigured.
- */
-async function generateAIResponse(prompt, systemInstruction = SYSTEM_PROMPT_STUDY) {
-  let geminiApiKey = process.env.GEMINI_API_KEY;
-  const groqApiKey = process.env.GROQ_API_KEY;
-
-  // Fallback to database Settings if env var is missing
-  if (!geminiApiKey || geminiApiKey === "YOUR_GEMINI_API_KEY") {
+// Helper to fetch setting from DB if process.env is missing
+async function getSettingKey(envKey, dbKey) {
+  let val = process.env[envKey];
+  if (!val || val === `YOUR_${envKey}`) {
     try {
-      const settingDoc = await Settings.findOne({ key: "geminiApiKey" });
-      if (settingDoc && settingDoc.value) {
-        geminiApiKey = settingDoc.value;
-      }
+      const doc = await Settings.findOne({ key: dbKey });
+      if (doc && doc.value) val = doc.value;
     } catch (e) {}
   }
+  return val;
+}
 
-  // 1. Google Gemini API
+/**
+ * Send prompt with automatic multi-AI provider cascading failover.
+ * Order: Google Gemini -> Groq (Llama 3) -> Mistral AI -> Hugging Face -> Offline Smart Fallback
+ */
+async function generateAIResponse(prompt, systemInstruction = SYSTEM_PROMPT_STUDY) {
+  const geminiApiKey = await getSettingKey("GEMINI_API_KEY", "geminiApiKey");
+  const groqApiKey = await getSettingKey("GROQ_API_KEY", "groqApiKey");
+  const mistralApiKey = await getSettingKey("MISTRAL_API_KEY", "mistralApiKey");
+  const huggingfaceApiKey = await getSettingKey("HUGGINGFACE_API_KEY", "huggingfaceApiKey");
+
+  // Provider 1: Google Gemini API
   if (geminiApiKey && geminiApiKey !== "YOUR_GEMINI_API_KEY") {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
@@ -35,14 +40,18 @@ async function generateAIResponse(prompt, systemInstruction = SYSTEM_PROMPT_STUD
       });
       const data = await response.json();
       if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
-        return data.candidates[0].content.parts[0].text;
+        return {
+          text: data.candidates[0].content.parts[0].text,
+          provider: "Google Gemini 1.5 Flash"
+        };
       }
+      console.warn("Gemini API quota/limit reached or no candidate. Failover to Groq...");
     } catch (err) {
-      console.error("Gemini API Error:", err.message);
+      console.error("Gemini API Error, failing over to Groq:", err.message);
     }
   }
 
-  // 2. Groq API (Llama-3 fallback)
+  // Provider 2: Groq API (Llama-3.1 8B)
   if (groqApiKey && groqApiKey !== "YOUR_GROQ_API_KEY") {
     try {
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -62,15 +71,74 @@ async function generateAIResponse(prompt, systemInstruction = SYSTEM_PROMPT_STUD
       });
       const data = await response.json();
       if (data.choices && data.choices[0]?.message?.content) {
-        return data.choices[0].message.content;
+        return {
+          text: data.choices[0].message.content,
+          provider: "Groq (Llama 3.1)"
+        };
       }
+      console.warn("Groq API quota reached. Failover to Mistral...");
     } catch (err) {
-      console.error("Groq API Error:", err.message);
+      console.error("Groq API Error, failing over to Mistral:", err.message);
     }
   }
 
-  // 3. Fallback Smart Educator Engine if no API key is provided
-  return generateOfflineFallback(prompt);
+  // Provider 3: Mistral AI API
+  if (mistralApiKey && mistralApiKey !== "YOUR_MISTRAL_API_KEY") {
+    try {
+      const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${mistralApiKey}`
+        },
+        body: JSON.stringify({
+          model: "mistral-tiny",
+          messages: [
+            { role: "system", content: systemInstruction },
+            { role: "user", content: prompt }
+          ]
+        })
+      });
+      const data = await response.json();
+      if (data.choices && data.choices[0]?.message?.content) {
+        return {
+          text: data.choices[0].message.content,
+          provider: "Mistral AI"
+        };
+      }
+    } catch (err) {
+      console.error("Mistral API Error, failing over to HuggingFace:", err.message);
+    }
+  }
+
+  // Provider 4: Hugging Face Inference API
+  if (huggingfaceApiKey && huggingfaceApiKey !== "YOUR_HUGGINGFACE_API_KEY") {
+    try {
+      const response = await fetch("https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${huggingfaceApiKey}`
+        },
+        body: JSON.stringify({ inputs: `${systemInstruction}\n\nUser: ${prompt}\nAssistant:` })
+      });
+      const data = await response.json();
+      if (Array.isArray(data) && data[0]?.generated_text) {
+        return {
+          text: data[0].generated_text.split("Assistant:")[1] || data[0].generated_text,
+          provider: "Hugging Face Inference"
+        };
+      }
+    } catch (err) {
+      console.error("HuggingFace API Error:", err.message);
+    }
+  }
+
+  // Provider 5: Smart Offline Engine Fallback
+  return {
+    text: generateOfflineFallback(prompt),
+    provider: "UHC Core AI Engine"
+  };
 }
 
 /**
@@ -80,7 +148,7 @@ function generateOfflineFallback(prompt) {
   const lower = prompt.toLowerCase();
   
   if (lower.includes("explain option") || lower.includes("why option")) {
-    return `### 💡 AI Answer Breakdown\n\n* **Option Analysis**: The selected option was evaluated based on standard medical/educational reference material.\n* **Core Medical Concept**: Focus on primary symptoms, physiological mechanisms, and clinical guidelines related to this question.\n* **Study Tip**: Review key definitions and compare option lengths and definitions when practicing.\n\n*(Note: Add your free \`GEMINI_API_KEY\` in .env for dynamic real-time AI responses!)*`;
+    return `### 💡 AI Answer Breakdown\n\n* **Option Analysis**: The selected option was evaluated based on standard medical/educational reference material.\n* **Core Medical Concept**: Focus on primary symptoms, physiological mechanisms, and clinical guidelines related to this question.\n* **Study Tip**: Review key definitions and compare option lengths and definitions when practicing.\n\n*(Note: Add your free \`GEMINI_API_KEY\` or \`GROQ_API_KEY\` in Admin Settings for live multi-AI response!)*`;
   }
 
   if (lower.includes("shorten") || lower.includes("balance options")) {
@@ -94,7 +162,7 @@ function generateOfflineFallback(prompt) {
     });
   }
 
-  return `### 🤖 UHC AI Study Assistant\n\nThank you for asking: **"${prompt.slice(0, 60)}..."**\n\nHere is a helpful summary:\n* **Core Principle**: Medical and health concepts rely on systematic understanding of fundamentals.\n* **Key Focus**: Always prioritize patient safety, clear evidence, and standard practice guidelines.\n\n> 🔑 *Tip: Provide a free \`GEMINI_API_KEY\` in \`uhc-backend/.env\` to connect directly to live Gemini AI!*`;
+  return `### 🤖 UHC AI Study Assistant\n\nThank you for asking: **"${prompt.slice(0, 60)}..."**\n\nHere is a helpful summary:\n* **Core Principle**: Medical and health concepts rely on systematic understanding of fundamentals.\n* **Key Focus**: Always prioritize patient safety, clear evidence, and standard practice guidelines.\n\n> 🔑 *Tip: Provide free API keys in Admin Settings to enable multi-AI failover (Gemini, Groq, Mistral)!*`;
 }
 
 /**
@@ -116,8 +184,8 @@ Example format:
 {"options": ["Short opt 0", "Short opt 1", "Short opt 2", "Short opt 3"]}`;
 
   try {
-    const rawRes = await generateAIResponse(prompt, "You are a JSON-only API that outputs valid JSON object with key 'options'.");
-    const cleaned = rawRes.replace(/```json/g, "").replace(/```/g, "").trim();
+    const aiRes = await generateAIResponse(prompt, "You are a JSON-only API that outputs valid JSON object with key 'options'.");
+    const cleaned = (aiRes.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
     if (parsed.options && Array.isArray(parsed.options) && parsed.options.length === 4) {
       return parsed.options;
@@ -126,14 +194,7 @@ Example format:
     console.error("Failed to parse AI option shortener JSON:", err);
   }
 
-  // Fallback heuristic shortener
-  return originalOptions.map(opt => {
-    if (opt.length > 60) {
-      const parts = opt.split(/[,.]/);
-      return parts[0].trim();
-    }
-    return opt;
-  });
+  return originalOptions.map(opt => (opt.length > 60 ? opt.split(/[,.]/)[0].trim() : opt));
 };
 
 /**
@@ -156,8 +217,8 @@ Task: Generate ${count} high-quality questions. Each question must have:
 Return strictly valid JSON format with key "questions": array of question objects. Do NOT include markdown formatting.`;
 
   try {
-    const rawRes = await generateAIResponse(prompt, "You output strictly valid JSON with key 'questions'.");
-    const cleaned = rawRes.replace(/```json/g, "").replace(/```/g, "").trim();
+    const aiRes = await generateAIResponse(prompt, "You output strictly valid JSON with key 'questions'.");
+    const cleaned = (aiRes.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
     if (parsed.questions && Array.isArray(parsed.questions)) {
       return parsed.questions;
@@ -177,8 +238,8 @@ exports.generateSimilarQuestions = async (baseQuestionText, options, answerIndex
 Return strictly valid JSON format with key "questions": array of objects having "question", "options" (4 strings), "answer" (0-3 index), and "explanation".`;
 
   try {
-    const rawRes = await generateAIResponse(prompt, "You output strictly valid JSON.");
-    const cleaned = rawRes.replace(/```json/g, "").replace(/```/g, "").trim();
+    const aiRes = await generateAIResponse(prompt, "You output strictly valid JSON.");
+    const cleaned = (aiRes.text || "").replace(/```json/g, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(cleaned);
     if (parsed.questions && Array.isArray(parsed.questions)) {
       return parsed.questions;

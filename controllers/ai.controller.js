@@ -100,7 +100,9 @@ exports.askQuestion = async (req, res) => {
     }
 
     // Call AI Service
-    const aiResponse = await aiService.askAI(question);
+    const aiResult = await aiService.askAI(question);
+    const responseText = typeof aiResult === "string" ? aiResult : aiResult.text;
+    const providerUsed = aiResult.provider || "Google Gemini";
 
     // Deduct 1 credit
     user.aiCredits -= 1;
@@ -110,13 +112,19 @@ exports.askQuestion = async (req, res) => {
     const aiQuestionRecord = await AIQuestion.create({
       user: req.user?.id || req.userId,
       question,
-      response: aiResponse,
-      type: "chat"
+      response: responseText,
+      type: "chat",
+      metadata: { provider: providerUsed }
     });
 
     res.status(201).json({
       success: true,
-      data: aiQuestionRecord,
+      data: {
+        ...aiQuestionRecord.toObject(),
+        response: responseText,
+        provider: providerUsed
+      },
+      provider: providerUsed,
       remainingCredits: user.aiCredits
     });
   } catch (error) {
@@ -147,12 +155,15 @@ exports.explainQuizQuestion = async (req, res) => {
       });
     }
 
-    const explanation = await aiService.explainQuizOption(
+    const aiResult = await aiService.explainQuizOption(
       questionText,
       options,
       selectedIndex,
       correctIndex
     );
+
+    const explanationText = typeof aiResult === "string" ? aiResult : aiResult.text;
+    const providerUsed = aiResult.provider || "Google Gemini";
 
     // Deduct 1 credit
     user.aiCredits -= 1;
@@ -162,14 +173,15 @@ exports.explainQuizQuestion = async (req, res) => {
     await AIQuestion.create({
       user: req.user?.id || req.userId,
       question: `Quiz Explanation: ${questionText}`,
-      response: explanation,
+      response: explanationText,
       type: "explanation",
-      metadata: { selectedIndex, correctIndex }
+      metadata: { selectedIndex, correctIndex, provider: providerUsed }
     });
 
     res.status(200).json({
       success: true,
-      explanation,
+      explanation: explanationText,
+      provider: providerUsed,
       remainingCredits: user.aiCredits
     });
   } catch (error) {
