@@ -35,6 +35,7 @@ router.get("/", authMiddleware, async (req, res) => {
 router.put("/", authMiddleware, async (req, res) => {
   try {
     const { name, phone, category, country, profileImage } = req.body;
+    const oldUser = await User.findById(req.userId);
     const updatedUser = await User.findByIdAndUpdate(
       req.userId, 
       { name, phone, category, country, profileImage }, 
@@ -42,6 +43,28 @@ router.put("/", authMiddleware, async (req, res) => {
     ).select("-password");
     
     if (!updatedUser) return res.status(404).json({ message: "User not found" });
+
+    // Notify admins when a user adds/updates their phone number
+    if (phone && (!oldUser?.phone || oldUser.phone !== phone)) {
+      try {
+        const { createAdminActivity, createUserActivityLog } = require("../utils/adminLogger");
+        await createUserActivityLog(
+          req.userId,
+          "PHONE_UPDATED",
+          `${updatedUser.name} set mobile/WhatsApp number: ${phone}`,
+          "SUCCESS"
+        );
+        await createAdminActivity(
+          req.userId,
+          "USER_PHONE_UPDATED",
+          `${updatedUser.name} set mobile/WhatsApp number: ${phone}`,
+          { type: "User", id: req.userId, details: { name: updatedUser.name, phone }, notifType: "SUCCESS" }
+        );
+      } catch (logErr) {
+        console.error("Error logging phone update activity:", logErr);
+      }
+    }
+
     res.json(updatedUser);
   } catch (err) {
     console.error("Error updating user:", err.message);
