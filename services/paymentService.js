@@ -3,7 +3,7 @@ const User = require("../models/User");
 const Payment = require("../models/Payment");
 const { createAdminActivity, createUserActivityLog } = require("../utils/adminLogger");
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_6b1e62c1613ea7d8db167a57a912bbda1ef1604a";
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_51b39ca9175f95be943da695e99eb86eee8395e2";
 
 const SUBSCRIPTION_PLANS = {
   monthly: {
