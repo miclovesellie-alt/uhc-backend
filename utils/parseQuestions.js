@@ -28,7 +28,7 @@ function parseQuestions(text) {
         }
       });
 
-      if (options.length === 4 && answer !== null) {
+      if ((options.length === 3 || options.length === 4) && answer !== null && answer >= 0 && answer < options.length) {
         questions.push({
           question: questionText,
           options,

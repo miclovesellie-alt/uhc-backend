@@ -21,12 +21,13 @@ router.post("/", authMiddleware, adminOnly, async (req, res) => {
 
     // Basic validation for each question
     const validatedQuestions = questions.map(q => {
-      if (!q.course || !q.question || !q.options || q.options.length !== 4 || typeof q.answer !== 'number') {
-        throw new Error(`Invalid question format: ${q.question || 'Unknown'}`);
+      const opts = Array.isArray(q.options) ? q.options.map(o => String(o).trim()).filter(Boolean) : [];
+      if (!q.course || !q.question || (opts.length !== 3 && opts.length !== 4) || typeof q.answer !== 'number' || q.answer < 0 || q.answer >= opts.length) {
+        throw new Error(`Invalid question format: "${q.question || 'Unknown'}" (Must have 3 or 4 valid options and correct answer index)`);
       }
       return {
         ...q,
-        // uploadedBy: req.user?._id // We'll add this if we have auth user info
+        options: opts,
       };
     });
 
