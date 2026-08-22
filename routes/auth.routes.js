@@ -18,8 +18,8 @@ router.post("/signup", async (req, res) => {
 
     const { name, email, phone, password, category, country } = req.body;
 
-    if (!name || !email || !password || !category || !country) {
-      return res.status(400).json({ message: "Please fill all fields" });
+    if (!name || !email || !phone || !password || !category || !country) {
+      return res.status(400).json({ message: "Please fill all fields including your mobile / WhatsApp number" });
     }
 
     const existingUser = await User.findOne({ email });
