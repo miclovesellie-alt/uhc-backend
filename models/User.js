@@ -21,9 +21,13 @@ const userSchema = new mongoose.Schema(
     lastLogin: { type: Date, default: null },
     adminTheme: { type: String, default: "light", enum: ["light", "dark"] },
 
-    // ===== AI Credits =====
+    // ===== AI Credits & Premium Subscription =====
     aiCredits: { type: Number, default: 10 },
     lastAiCreditReset: { type: Date, default: Date.now },
+    isPremium: { type: Boolean, default: false, index: true },
+    premiumPlan: { type: String, default: "free", enum: ["free", "monthly", "semester", "annual", "lifetime"] },
+    premiumExpiresAt: { type: Date, default: null },
+    premiumActivatedAt: { type: Date, default: null },
 
     // ===== Institution (for tutors & health workers) =====
     institution:          { type: mongoose.Schema.Types.ObjectId, ref: "Institution", default: null },

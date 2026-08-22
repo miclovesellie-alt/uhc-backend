@@ -3,9 +3,15 @@ const User = require("../models/User");
 const Question = require("../models/Question");
 const aiService = require("../services/aiService");
 
-// Helper to check and reset daily user credits
+// Helper to check and reset daily user credits or return unlimited for Premium users
 const checkAndResetCredits = async (user) => {
   const now = new Date();
+  
+  // Premium users get unlimited credits
+  if (user.isPremium && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > now) {
+    return 9999; // Unlimited
+  }
+
   const lastReset = user.lastAiCreditReset ? new Date(user.lastAiCreditReset) : new Date(0);
   
   // If last reset was on a previous calendar day, reset to 10 credits
@@ -27,10 +33,16 @@ exports.getUserCredits = async (req, res) => {
     const user = await User.findById(req.user?.id || req.userId);
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
+    const now = new Date();
+    const isPremium = Boolean(user.isPremium && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > now);
     const currentCredits = await checkAndResetCredits(user);
+    
     res.status(200).json({
       success: true,
-      credits: currentCredits,
+      isPremium,
+      premiumPlan: isPremium ? user.premiumPlan : "free",
+      premiumExpiresAt: user.premiumExpiresAt,
+      credits: isPremium ? "Unlimited" : currentCredits,
       points: user.points || 0
     });
   } catch (error) {
@@ -115,9 +127,13 @@ exports.askQuestion = async (req, res) => {
     const responseText = aiResult.text;
     const providerUsed = aiResult.provider || "Google Gemini";
 
-    // Deduct 1 credit
-    user.aiCredits -= 1;
-    await user.save();
+    // Deduct 1 credit if not premium
+    const now = new Date();
+    const isPremium = Boolean(user.isPremium && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > now);
+    if (!isPremium) {
+      user.aiCredits = Math.max(0, (user.aiCredits || 10) - 1);
+      await user.save();
+    }
 
     // Log query
     const aiQuestionRecord = await AIQuestion.create({

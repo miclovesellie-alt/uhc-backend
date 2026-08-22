@@ -38,6 +38,7 @@ const studyHubRoutes    = require("./routes/studyhub.routes");
 const institutionRoutes = require("./routes/institution.routes");
 const telegramBotRoutes = require("./routes/telegramBot.routes");
 const aiRoutes = require("./routes/ai.routes");
+const paymentRoutes = require("./routes/payment.routes");
 
 // =========================
 // IMPORT MODELS
@@ -170,6 +171,7 @@ safeUse("/api/studyhub",           studyHubRoutes);
 safeUse("/api/institutions",       institutionRoutes);
 safeUse("/api/admin/telegram-bot", telegramBotRoutes);
 safeUse("/api/ai",                 aiRoutes);
+safeUse("/api/payment",            paymentRoutes);
 
 // =========================
 // COURSES ROUTES
