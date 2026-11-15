@@ -39,6 +39,8 @@ const institutionRoutes = require("./routes/institution.routes");
 const telegramBotRoutes = require("./routes/telegramBot.routes");
 const aiRoutes = require("./routes/ai.routes");
 const paymentRoutes = require("./routes/payment.routes");
+const communityRoutes = require("./routes/community.routes");
+const communitySessionRoutes = require("./routes/communitySession.routes");
 
 // =========================
 // IMPORT MODELS
@@ -99,6 +101,14 @@ io.on("connection", (socket) => {
     emitAdminStats(); // Update dashboard live
     emitPresenceUpdate();
   });
+
+  // Community rooms
+  socket.on("community:join", ({ communityId, userId }) => {
+    socket.join(`community:${communityId}`);
+  });
+  socket.on("community:leave", ({ communityId }) => {
+    socket.leave(`community:${communityId}`);
+  });
 });
 
 function emitPresenceUpdate() {
@@ -120,6 +130,7 @@ questionsRoute.setIO(io);
 contactRoutes.setIO(io);
 setLoggerIO(io);
 setUserNotifierIO(io);
+communitySessionRoutes.setIO(io);
 
 // =========================
 // MIDDLEWARE
@@ -172,6 +183,8 @@ safeUse("/api/institutions",       institutionRoutes);
 safeUse("/api/admin/telegram-bot", telegramBotRoutes);
 safeUse("/api/ai",                 aiRoutes);
 safeUse("/api/payment",            paymentRoutes);
+safeUse("/api/communities",        communityRoutes);
+safeUse("/api/communities",        communitySessionRoutes);
 
 // =========================
 // COURSES ROUTES
