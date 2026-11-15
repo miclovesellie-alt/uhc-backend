@@ -59,10 +59,10 @@ router.post("/", authMiddleware, async (req, res) => {
       joinedAt: new Date(),
     });
 
-    res.status(201).json({ community });
+    res.status(201).json(community);
   } catch (err) {
     console.error("Create community error:", err);
-    res.status(500).json({ message: "Failed to create community" });
+    res.status(500).json({ message: err.message || "Failed to create community" });
   }
 });
 
@@ -86,7 +86,7 @@ router.get("/", authMiddleware, async (req, res) => {
         myRole: m.role,
       }));
 
-    res.json({ communities });
+    res.json(communities);
   } catch (err) {
     console.error("Get communities error:", err);
     res.status(500).json({ message: "Failed to fetch communities" });
@@ -105,7 +105,7 @@ router.get("/invites/pending", authMiddleware, async (req, res) => {
       .populate({ path: "invitedBy", select: "name" })
       .lean();
 
-    res.json({ invites: pending });
+    res.json(pending);
   } catch (err) {
     console.error("Get pending invites error:", err);
     res.status(500).json({ message: "Failed to fetch pending invites" });
