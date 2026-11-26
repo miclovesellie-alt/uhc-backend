@@ -316,7 +316,7 @@ router.get("/:communityId/sessions/:sessionId/results", authMiddleware, async (r
       .sort({ score: -1 })
       .lean();
 
-    res.json({ results });
+    res.json(results);
   } catch (err) {
     console.error("Get session results error:", err);
     res.status(500).json({ message: "Failed to fetch results" });
